@@ -27,19 +27,6 @@
 static char THIS_FILE[] = __FILE__;
 #endif
 
-#define SPECIES_NUM 9
-#define ALL_SPECTR 5
-#define CH_NUM 8
-#define CYCLE_WIDTH 623
-#define SCAN_NUM 1120
-
-// Specification of reaction channels  //////////////////////////////////////////////////////////////////////
-// { n-body dissociation?, label of the 1st fragment, label of the 2nd fragment, ...}
-
-int Chs[CH_NUM][4] = { {2,0,5,0},{2,1,4,0},{2,0,6,0},{2,1,5,0},{2,2,4,0},{3,0,1,4},{2,1,6,0},{2,3,4,0} };
-
-/////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
 /////////////////////////////////////////////////////////////////////////////
 // insert the subprogram part for software insert here
 // ------> update dependencies <------
@@ -101,7 +88,7 @@ int Chs[CH_NUM][4] = { {2,0,5,0},{2,1,4,0},{2,0,6,0},{2,1,5,0},{2,2,4,0},{3,0,1,
 //	V10.07 - 24.10-2ß14 - reflection_in_MCP coordinate now calculating Hit2-Hit1 TDC changed from channel 0 to channel 8 in case Parameter 1025 = 0, other than 0 no change in behavior
 ///////////////////////////////////////////////////////////////////////////
 
-#define CHECKID_DANCCF	201712040000
+#define CHECKID_DANCCF	201102080000
 
 #define DAQ_VERSION10	20110208		// 08.02.2011
 #define DAQ_VERSION7	20080507		// 07.05.2008
@@ -277,9 +264,9 @@ double dCRPhix;				// parameter 1023
 double dCRPhiy;				// parameter 1024
 
 __int32 i32Cmcp;			// parameter 1025
-__int32 i32Cx1, i32Cx2;		// parameter 1026 to 1031
-__int32 i32Cy1, i32Cy2;
-__int32 i32Cz1, i32Cz2;
+__int32 i32Cx1,i32Cx2;		// parameter 1026 to 1031
+__int32 i32Cy1,i32Cy2;
+__int32 i32Cz1,i32Cz2;
 
 __int32 i32TOFChannel;		// parameter 1032
 
@@ -288,49 +275,6 @@ double dOPy;				// parameter 1036
 double dOPw;				// parameter 1037
 double dOSum;				// parameter 1038
 bool	bAntiMoire;			// parameter 1039
-
-double a, b;                   // parameter 2000-2001
-double tof_min[SPECIES_NUM];
-double tof_max[SPECIES_NUM];   // parameter 2010-2027
-double const_value;            // parameter 2028
-double count3;                 // parameter 2029
-
-double pcent[SPECIES_NUM][3];  // parameter 2030 ~ 2056
-
-double S1, S2;                 // parameter 2060, 2061
-int cycle_offset;              // parameter 2062
-int csign = 0;                     // parameter 2063
-double PD1cent, PD2cent;       // parameter 2065, 2066
-
-int S1bool, S2bool;            // switching parameter for calculating scan
-
-
-// parameters for the delay time calculation//-----------------------------
-int cycle = 0;
-int direction;
-int scan = 0;
-double preangle = 0;
-double predelay = 0;
-//-------------------------------------------------------------------------
-
-
-int N = 0;
-
-double prePosX[SPECIES_NUM] = { 0 };
-double prePosY[SPECIES_NUM] = { 0 };
-double prep[4][3] = { 0 };
-double prepXwX[4][3] = { 0 };
-
-double preanglex[SPECIES_NUM] = { 0 };
-double preanglez[SPECIES_NUM] = { 0 };
-
-static int n_cnst[SCAN_NUM][CYCLE_WIDTH + 2] = { 0 };
-static int center[SCAN_NUM] = { 0 };
-
-int H_flag = 0, D_flag = 0;
-int covH_flag = 0, covD_flag = 0;
-int falseH_flag = 0, falseD_flag = 0;
-
 
 __int32 i32StartDAqTDCData;
 
@@ -354,13 +298,13 @@ __declspec(dllimport) __int32 DAqTimeStamp;
 
 ///////////////////////////////
 // function declarations
-double GetReflectionValue(__int32 C1, __int32 C2, __int32 counts[], CDoubleArray &EventData);
+double GetReflectionValue(__int32 C1,__int32 C2, __int32 counts[], CDoubleArray &EventData);
 
 ///////////////////////////////
 // in lines
 inline __int32 signofd(double a)
-{
-	return (a == 0.0) ? 0 : (a < 0.0 ? -1 : 1);
+{ 
+	return (a == 0.0) ? 0 : (a<0.0 ? -1 : 1); 
 }
 
 ///////////////////////////////
@@ -378,7 +322,7 @@ CDAN_API LPCTSTR AnalysisGetInformationString()
 #ifdef _DEBUG
 	DAnDebugInfo = "D";
 #endif
-	myInfoString.Format("Standard Analysis(%sV %08d - %04d, %04d)", DAnDebugInfo, DAN_VERSION10, DAN_SUBVERSION, LMF_VERSION10);
+	myInfoString.Format("Standard Analysis(%sV %08d - %04d, %04d)",DAnDebugInfo,DAN_VERSION10,DAN_SUBVERSION,LMF_VERSION10);
 
 	return LPCTSTR(myInfoString);
 }
@@ -391,7 +335,7 @@ CDAN_API LPCTSTR AnalysisGetInformationString()
 // return value is false -> error during initialize
 //                 true  -> initialize ok 
 
-CDAN_API BOOL AnalysisInitialize(CDoubleArray &EventData, CDoubleArray &Parameter, CDoubleArray &WeighParameter)
+CDAN_API BOOL AnalysisInitialize(CDoubleArray &EventData,CDoubleArray &Parameter, CDoubleArray &WeighParameter)
 {
 	// initialize the random generator
 	//srand( (unsigned __int32)time( nullptr ) );			// random seed
@@ -399,50 +343,50 @@ CDAN_API BOOL AnalysisInitialize(CDoubleArray &EventData, CDoubleArray &Paramete
 
 	__int32 DAqloops = RoundToNearestInt32(Parameter[53]);
 
-	if (!DAqloops)
+	if(!DAqloops) 
 	{
 		AfxMessageBox("No data will be read from TDC because parameter 53 is set to zero");
 		return false;
 	}
 
-	if (!pDAnUserSP)
+	if(!pDAnUserSP) 
 		pDAnUserSP = (CUserSpectrum *)new CUserSpectrum();
 
 	int iFileNum;
 	CString csPathName, csBasePathName;
 	int iStart, iEnd;
 
-	bool ret = pDAnUserSP->GetMultiFileInformation(iFileNum, csPathName, csBasePathName, iStart, iEnd, bFirstFile, bLastFile);
+	bool ret = pDAnUserSP->GetMultiFileInformation(iFileNum,csPathName,csBasePathName,iStart,iEnd,bFirstFile,bLastFile);
 
 	_dOldEventTime = 0.0;
 	_dStartEventTime = 0.0;
 
 	// first check if all parameters are set
-	if (Parameter.GetSize() < 1060)
+	if(Parameter.GetSize() < 1060)
 	{
 		// indicate parameter number error
-		__int32 iAnswer = AfxMessageBox("Not all parameters are defined\n for this DAn module!\n\nYou may ignore this on your own risk!\n\nTo Ignore press YES", MB_ICONQUESTION | MB_YESNO);
-		if (iAnswer == IDNO)
+		__int32 iAnswer = AfxMessageBox("Not all parameters are defined\n for this DAn module!\n\nYou may ignore this on your own risk!\n\nTo Ignore press YES",MB_ICONQUESTION|MB_YESNO);
+		if(iAnswer == IDNO)
 			return false;
 	}
 
 	// check DAq-Version
 	unsigned __int32 _ui32DAqVersion = RoundToNearestUInt32(Parameter[6]);
-	if ((_ui32DAqVersion != DAQ_VERSION5) && (_ui32DAqVersion != DAQ_VERSION6) && (_ui32DAqVersion != DAQ_VERSION7) && (_ui32DAqVersion != DAQ_VERSION10))
+	if((_ui32DAqVersion != DAQ_VERSION5) && (_ui32DAqVersion != DAQ_VERSION6) && (_ui32DAqVersion != DAQ_VERSION7) && (_ui32DAqVersion != DAQ_VERSION10))
 	{
 		// indicate DAq version error
 		CString MsgText;
 		MsgText.Format("DAn module works only with list mode data\ntaken with Standard DAq-Modules version\n(%d, %d, %d and %d)!",
 			DAQ_VERSION5, DAQ_VERSION6, DAQ_VERSION7, DAQ_VERSION10);
 		MsgText += "\n\nYou may ignore this on your own risk!\n\nTo Ignore press YES";
-		__int32 i32Answer = AfxMessageBox(MsgText, MB_ICONQUESTION | MB_YESNO);
-		if (i32Answer == IDNO)
+		__int32 i32Answer = AfxMessageBox(MsgText,MB_ICONQUESTION|MB_YESNO);
+		if(i32Answer == IDNO)
 			return false;
 	}
 
-	if (RoundToNearestUInt64(Parameter[1050]) != CHECKID_DANCCF)
+	if(RoundToNearestUInt64(Parameter[1050]) != CHECKID_DANCCF) 
 	{
-		AfxMessageBox(CString("Parameter 1050 indicates that the CCF\n") +
+		AfxMessageBox(CString("Parameter 1050 indicates that the CCF\n") + 
 			CString("and DAn are not compatible\n"));
 		return 0;
 	}
@@ -462,7 +406,7 @@ CDAN_API BOOL AnalysisInitialize(CDoubleArray &EventData, CDoubleArray &Paramete
 
 	i32NumberOfChannels = RoundToNearestInt32(Parameter[32]);						// parameter 32
 	i32NumberOfHits = RoundToNearestInt32(Parameter[33]);							// parameter 33
-	i32DataFormat = RoundToNearestInt32(signofd(Parameter[40] + 0.1) < 0 ? Parameter[40] - 0.1 : Parameter[40] + 0.1);	// parameter 40	
+	i32DataFormat = RoundToNearestInt32(signofd(Parameter[40]+0.1)<0 ? Parameter[40]-0.1 : Parameter[40]+0.1);	// parameter 40	
 
 	i32Conversion = RoundToNearestInt32(Parameter[1000]);							// parameter 1000
 	i32HexAnode = RoundToNearestInt32(Parameter[1002]);								// parameter 1002
@@ -480,17 +424,17 @@ CDAN_API BOOL AnalysisInitialize(CDoubleArray &EventData, CDoubleArray &Paramete
 	dCOy = Parameter[1021];															// parameter 1021
 	dRotA = Parameter[1022];														// parameter 1022
 
-	dCRPhix = Parameter[1023];														// parameter 1023
-	dCRPhiy = Parameter[1024];														// parameter 1024
+	dCRPhix =  Parameter[1023];														// parameter 1023
+	dCRPhiy =  Parameter[1024];														// parameter 1024
 
-	i32Cmcp = RoundToNearestInt32(Parameter[1025]) - 1;								// parameter 1025
-	i32Cx1 = RoundToNearestInt32(Parameter[1026]) - 1;								// parameter 1026
-	i32Cx2 = RoundToNearestInt32(Parameter[1027]) - 1;								// parameter 1027
-	i32Cy1 = RoundToNearestInt32(Parameter[1028]) - 1;								// parameter 1028
-	i32Cy2 = RoundToNearestInt32(Parameter[1029]) - 1;								// parameter 1029
-	i32Cz1 = RoundToNearestInt32(Parameter[1030]) - 1;								// parameter 1030
-	i32Cz2 = RoundToNearestInt32(Parameter[1031]) - 1;								// parameter 1031
-	i32TOFChannel = RoundToNearestInt32(Parameter[1032]) - 1;							// parameter 1032
+	i32Cmcp = RoundToNearestInt32(Parameter[1025])-1;								// parameter 1025
+	i32Cx1 = RoundToNearestInt32(Parameter[1026])-1;								// parameter 1026
+	i32Cx2 = RoundToNearestInt32(Parameter[1027])-1;								// parameter 1027
+	i32Cy1 = RoundToNearestInt32(Parameter[1028])-1;								// parameter 1028
+	i32Cy2 = RoundToNearestInt32(Parameter[1029])-1;								// parameter 1029
+	i32Cz1 = RoundToNearestInt32(Parameter[1030])-1;								// parameter 1030
+	i32Cz2 = RoundToNearestInt32(Parameter[1031])-1;								// parameter 1031
+	i32TOFChannel = RoundToNearestInt32(Parameter[1032])-1;							// parameter 1032
 
 	dOPx = Parameter[1035];															// parameter 1035
 	dOPy = Parameter[1036];															// parameter 1036
@@ -499,106 +443,40 @@ CDAN_API BOOL AnalysisInitialize(CDoubleArray &EventData, CDoubleArray &Paramete
 	bAntiMoire = RoundToNearestInt32(Parameter[1039]) ? true : false;				// parameter 1039
 	bool bdEventCounterReset = RoundToNearestInt32(Parameter[1040]) ? true : false;	// parameter 1040
 
-	a = Parameter[2000];                                                            // parameter 2000
-	b = Parameter[2001];                                                            // parameter 2001
-
-	int i, j;
-
-	for (i = 0; i <= 8; i++)
-	{
-		tof_min[i] = (Parameter[2010 + 2 * i] - b) / (2 * a);                       // parameter 2010
-		tof_max[i] = (Parameter[2010 + 2 * i + 1] - b) / (2 * a);                   //                ~ 2027
-	}
-
-
-	const_value = Parameter[2028]; 
-	count3 = Parameter[2029];
-
-	pcent[0][0] = Parameter[2030];
-	pcent[0][1] = Parameter[2031];
-	pcent[0][2] = Parameter[2032];
-
-	pcent[1][0] = Parameter[2033];
-	pcent[1][1] = Parameter[2034];
-	pcent[1][2] = Parameter[2035];
-
-	pcent[2][0] = Parameter[2036];
-	pcent[2][1] = Parameter[2037];
-	pcent[2][2] = Parameter[2038];
-
-	pcent[3][0] = Parameter[2039];
-	pcent[3][1] = Parameter[2040];
-	pcent[3][2] = Parameter[2041];
-
-	pcent[4][0] = Parameter[2042];
-	pcent[4][1] = Parameter[2043];
-	pcent[4][2] = Parameter[2044];
-
-	pcent[5][0] = Parameter[2045];
-	pcent[5][1] = Parameter[2046];
-	pcent[5][2] = Parameter[2047];
-
-	pcent[6][0] = Parameter[2048];
-	pcent[6][1] = Parameter[2049];
-	pcent[6][2] = Parameter[2050];
-
-	pcent[7][0] = Parameter[2051];
-	pcent[7][1] = Parameter[2052];
-	pcent[7][2] = Parameter[2053];
-
-	pcent[8][0] = Parameter[2054];
-	pcent[8][1] = Parameter[2055];
-	pcent[8][2] = Parameter[2056];
-
-	S1 = Parameter[2060];
-	S2 = Parameter[2061];
-	cycle_offset = (int)Parameter[2062];
-	csign = (int)Parameter[2063];
-
-
-	PD1cent = Parameter[2065];
-	PD2cent = Parameter[2066];
-
-	scan = 0;
-	cycle = -cycle_offset; //usually offset should be zero
-	S1bool = S2bool = 1;
-
-
 	// check parameter 20 for valid data
-	if (Parameter[20] <= 0.0)
+	if(Parameter[20] <= 0.0)
 	{
 		// indicate TDC resolution error
-		__int32 i32Answer = AfxMessageBox("Parameter 20\nTDC-resolution\ncontains no valid data!\n\nValues should be >= 0.0\n\nYou may ignore this on your own risk!\n\nTo Ignore press YES", MB_ICONQUESTION | MB_YESNO);
-		if (i32Answer == IDNO)
+		__int32 i32Answer = AfxMessageBox("Parameter 20\nTDC-resolution\ncontains no valid data!\n\nValues should be >= 0.0\n\nYou may ignore this on your own risk!\n\nTo Ignore press YES",MB_ICONQUESTION|MB_YESNO);
+		if(i32Answer == IDNO)
 			return false;
 	}
 
 	// check parameter 21 for valid data
-	if (RoundToNearestInt32(Parameter[21]) < 0 || RoundToNearestInt32(Parameter[21]) > 2)
+	if(RoundToNearestInt32(Parameter[21]) < 0 || RoundToNearestInt32(Parameter[21]) > 2)
 	{
 		// indicate TDC-data type error
-		__int32 i32Answer = AfxMessageBox("Parameter 21\nTDC-data type\ncontains no valid data!\n\nValues should be 0,1 or 2\n\nYou may ignore this on your own risk!\n\nTo Ignore press YES", MB_ICONQUESTION | MB_YESNO);
-		if (i32Answer == IDNO)
+		__int32 i32Answer = AfxMessageBox("Parameter 21\nTDC-data type\ncontains no valid data!\n\nValues should be 0,1 or 2\n\nYou may ignore this on your own risk!\n\nTo Ignore press YES",MB_ICONQUESTION|MB_YESNO);
+		if(i32Answer == IDNO)
 			return false;
 	}
 
 	// check parameter 1002 for valid data
-	if ((i32HexAnode < 0) || (i32HexAnode > 2))
+	if((i32HexAnode < 0) || (i32HexAnode > 2))
 	{
-		__int32 i32Answer = AfxMessageBox("Parameter 1002\nHexAnode\ncontains no valid data!\n\nValues should be [0..2]\n\nYou may ignore this on your own risk!\n\nTo Ignore press YES (assuming HexAnode)", MB_ICONSTOP | MB_YESNO);
-		if (i32Answer == IDNO)
+		__int32 i32Answer = AfxMessageBox("Parameter 1002\nHexAnode\ncontains no valid data!\n\nValues should be [0..2]\n\nYou may ignore this on your own risk!\n\nTo Ignore press YES (assuming HexAnode)",MB_ICONSTOP|MB_YESNO);
+		if(i32Answer == IDNO)
 			return false;
 	}
-	
-//	if (i32HexAnode == 1)
-//	{
-//		__int32 i32Answer = AfxMessageBox("Please note that there is a special\nversion of the data analysis available\nfor HEX-detectors.\nPlease contact RoentDek.\n\nIf you want to continue with the (limited) standard version\nthen please set parameter 1002 to 2\n\nTo Ignore press YES (assuming HexAnode)", MB_ICONEXCLAMATION | MB_YESNO);
-//		if (i32Answer == IDNO)
-//			return false;
-//	}
+	if(i32HexAnode == 1)
+	{
+		__int32 i32Answer = AfxMessageBox("Please note that there is a special\nversion of the data analysis available\nfor HEX-detectors.\nPlease contact RoentDek.\n\nIf you want to continue with the (limited) standard version\nthen please set parameter 1002 to 2\n\nTo Ignore press YES (assuming HexAnode)",MB_ICONEXCLAMATION|MB_YESNO);
+		if(i32Answer == IDNO)
+			return false;
+	}
 
 	// set dEventCounter to zero at start of new command
-	if (bdEventCounterReset)
+	if(bdEventCounterReset)
 	{
 		dEventCounter = 0;
 		Parameter[1040] = false;
@@ -606,39 +484,39 @@ CDAN_API BOOL AnalysisInitialize(CDoubleArray &EventData, CDoubleArray &Paramete
 
 	// correct data for start of DAn coordinates
 	// first the start of DAqData
-	if (i32StartDAqData < 0)
+	if(i32StartDAqData < 0)
 	{
 		i32StartDAqData = i32StartDAqTDCData = 0;
 		Parameter[1005] = i32StartDAqTDCData;	// write information back to parameter 1005
 	}
 
 	// second the start of DAnData
-	if (i32StartDAnData < 0)
+	if(i32StartDAnData < 0)
 	{
-		if (i32DAq_ID == DAQ_ID_HM1_ABM) // correct ABM start DAn data for standard DAn
-			i32StartDAnData = i32StartDAqTDCData + (i32NumberOfChannels * (i32NumberOfHits + 1));
-		else if (i32DAq_ID == DAQ_ID_2HM1)
+		if(i32DAq_ID == DAQ_ID_HM1_ABM) // correct ABM start DAn data for standard DAn
+			i32StartDAnData = i32StartDAqTDCData + (i32NumberOfChannels * (i32NumberOfHits+1));
+		else if(i32DAq_ID == DAQ_ID_2HM1)
 		{
 			__int32 ip2NumberOfChannels = RoundToNearestInt32(Parameter[82]);						// parameter 82
 			__int32 ip2NumberOfHits = RoundToNearestInt32(Parameter[83]);							// parameter 83
 
-			i32StartDAnData = i32StartDAqTDCData + (i32NumberOfChannels * (i32NumberOfHits + 1));
-			i32StartDAnData += (ip2NumberOfChannels * (ip2NumberOfHits + 1));
+			i32StartDAnData = i32StartDAqTDCData + (i32NumberOfChannels * (i32NumberOfHits+1));
+			i32StartDAnData += (ip2NumberOfChannels * (ip2NumberOfHits+1));
 		}
-		else if (i32DAq_ID == DAQ_ID_2TDC8)
+		else if(i32DAq_ID == DAQ_ID_2TDC8)
 		{
 			__int32 ip2NumberOfChannels = RoundToNearestInt32(Parameter[34]);						// parameter 34
 			__int32 ip2NumberOfHits = RoundToNearestInt32(Parameter[35]);							// parameter 35
 
-			i32StartDAnData = i32StartDAqTDCData + (i32NumberOfChannels * (i32NumberOfHits + 1));
-			i32StartDAnData += (ip2NumberOfChannels * (ip2NumberOfHits + 1));
+			i32StartDAnData = i32StartDAqTDCData + (i32NumberOfChannels * (i32NumberOfHits+1));
+			i32StartDAnData += (ip2NumberOfChannels * (ip2NumberOfHits+1));
 		}
 		else
 		{
-			if (i32DAq_ID == DAQ_ID_CAMAC)
+			if(i32DAq_ID == DAQ_ID_CAMAC)
 				i32StartDAnData = i32StartDAqTDCData + (i32NumberOfChannels * (i32NumberOfHits));
 			else
-				i32StartDAnData = i32StartDAqTDCData + (i32NumberOfChannels * (i32NumberOfHits + 1));
+				i32StartDAnData = i32StartDAqTDCData + (i32NumberOfChannels * (i32NumberOfHits+1));
 		}
 		i32StartDAnData += 1; // +1 for LowResLevelInfo of TDC8HP			
 
@@ -646,61 +524,28 @@ CDAN_API BOOL AnalysisInitialize(CDoubleArray &EventData, CDoubleArray &Paramete
 	}
 
 	// test for sufficient # of coordinates defined
-	if ((EventData.GetSize() < i32StartDAnData + 56 + i32NumberOfChannels))
+	if((EventData.GetSize() < i32StartDAnData + 56 + i32NumberOfChannels))
 	{
 		// indicate TDC-data type error
-		__int32 i32Answer = AfxMessageBox("Not all coordinates are defined\nfor this DAn module!\n\n\nYou may ignore this on your own risk!\n\nTo Ignore press YES", MB_ICONQUESTION | MB_YESNO);
-		if (i32Answer == IDNO)
+		__int32 i32Answer = AfxMessageBox("Not all coordinates are defined\nfor this DAn module!\n\n\nYou may ignore this on your own risk!\n\nTo Ignore press YES",MB_ICONQUESTION|MB_YESNO);
+		if(i32Answer == IDNO)
 			return false;
 	}
 
-	if (theDAnApp.SharedClassInstance)
+	if(theDAnApp.SharedClassInstance) 
 		theDAnApp.SharedClassInstance->bDAnIsRunning = true;
 
-	if (racpRateAveragingInstance)
+	if(racpRateAveragingInstance) 
 	{
-		delete racpRateAveragingInstance;
+		delete racpRateAveragingInstance; 
 		racpRateAveragingInstance = nullptr;
 	}
 	racpRateAveragingInstance = new RateAveragingClass();
-	if (racpRateAveragingInstance)
+	if(racpRateAveragingInstance) 
 		racpRateAveragingInstance->dIntegrationTime = Parameter[1041];
-	if (theDAnApp.SharedClassInstance)
-		if (theDAnApp.SharedClassInstance->bDAqIsRunningOnline && i32TimeStamp == 0)
+	if(theDAnApp.SharedClassInstance) 
+		if(theDAnApp.SharedClassInstance->bDAqIsRunningOnline && i32TimeStamp == 0) 
 			racpRateAveragingInstance->StartThread();
-
-	char file_name[] = "norm_const.cod";
-	char file_name2[] = "cycle_center.cod";
-	FILE *fp;
-	FILE *fp2;
-
-	errno_t error;
-	errno_t error2;
-
-	if ((error = fopen_s(&fp, file_name, "r")) != 0) {
-		fprintf(stderr, "error: can't read the file.");
-	}
-	else {
-		for (i = 0; i <= SCAN_NUM - 1; i++) {
-			for (j = 0; j <= CYCLE_WIDTH - 1; j++) {
-				fscanf(fp, "%d,", &n_cnst[i][j]);
-			}
-			fscanf(fp, "%d,%d\n", &n_cnst[i][CYCLE_WIDTH], &n_cnst[i][CYCLE_WIDTH + 1]);
-		}
-		fclose(fp);
-	}
-
-	if ((error2 = fopen_s(&fp2, file_name2, "r")) != 0) {
-		fprintf(stderr, "error: can't read the file.");
-	}
-	else {
-		for (i = 0; i <= SCAN_NUM - 1; i++) {
-			fscanf(fp2, "%d\n", &center[i]);
-		}
-		fclose(fp2);
-		center[0] = (int)Parameter[2062];
-	}
-
 
 	return true;
 }
@@ -710,7 +555,7 @@ CDAN_API BOOL AnalysisInitialize(CDoubleArray &EventData, CDoubleArray &Paramete
 ///////////////////////
 // is called during event loop execution
 //
-CDAN_API __int32 AnalysisProcessEvent(CDoubleArray &EventData, CDoubleArray &Parameter, CDoubleArray &WeighParameter, LMFPreEventData &preEventData)
+CDAN_API __int32 AnalysisProcessEvent(CDoubleArray &EventData,CDoubleArray &Parameter, CDoubleArray &WeighParameter, LMFPreEventData &preEventData)
 {
 	double AbsoluteEventTime;			// ns since start
 	double DeltaEventTime;				// This Time - PreviousTime
@@ -719,78 +564,45 @@ CDAN_API __int32 AnalysisProcessEvent(CDoubleArray &EventData, CDoubleArray &Par
 	__int32 PLLStatusLocked;			// totally locked then true else false
 
 	__int32 counts[32];
-	double x1[SPECIES_NUM + ALL_SPECTR], x2[SPECIES_NUM + ALL_SPECTR], y1[SPECIES_NUM + ALL_SPECTR], y2[SPECIES_NUM + ALL_SPECTR], z1[SPECIES_NUM + ALL_SPECTR], z2[SPECIES_NUM + ALL_SPECTR];
+	double x1,x2,y1,y2,z1,z2;
 	double TOF_ns = 0.;
-	double raw_x[SPECIES_NUM + ALL_SPECTR], raw_y[SPECIES_NUM + ALL_SPECTR], raw_w[SPECIES_NUM + ALL_SPECTR];
-	double sumx[SPECIES_NUM + ALL_SPECTR], sumy[SPECIES_NUM + ALL_SPECTR], sumw[SPECIES_NUM + ALL_SPECTR], sumxyw[SPECIES_NUM + ALL_SPECTR], diffxy[SPECIES_NUM + ALL_SPECTR];
-	double raw_sumx[SPECIES_NUM + ALL_SPECTR], raw_sumy[SPECIES_NUM + ALL_SPECTR], raw_sumw[SPECIES_NUM + ALL_SPECTR], raw_sumxyw[SPECIES_NUM + ALL_SPECTR], raw_diffxy[SPECIES_NUM + ALL_SPECTR];
-	double tof[SPECIES_NUM + ALL_SPECTR], mass[SPECIES_NUM + ALL_SPECTR];
-	double pi[SPECIES_NUM][3];
-	double pXwX[4][3] = { 0 };
-	double ptot[SPECIES_NUM];
-	double ptotXwX[4] = { 0 };
-	double preptot[4] = { 0 };
-	double preptotXwX[4] = { 0 };
-	double sump[CH_NUM][3] = { 0 };
-	//double sumpx6HaD, sumpy6HaD, sumpz6HaD;
-	double presump[CH_NUM][3] = { 0 };
-	//double presumpx6HaD, presumpy6HaD, presumpz6HaD;
-	double PosX[SPECIES_NUM + ALL_SPECTR], PosY[SPECIES_NUM + ALL_SPECTR];
-	double KER[SPECIES_NUM] = { 0 };
-	double KERXwX[4] = { 0 };
-	double KER_Ch[CH_NUM] = { 0 };
-	double KER_Ch6XwX[4] = { 0 };
-	double preKER[4] = { 0 };
-	double preKERXwX[4] = { 0 };
-	double preKER_Ch[CH_NUM] = { 0 };
-	double preKER_Ch6XwX[4] = { 0 };
-	double r, phi;
-	double Xuv, Yuv, Xuw, Yuw, Xvw, Yvw;
-	double dX, dY;
-	double constant[SPECIES_NUM];
-	double constotal = 0.;
-	double PD1, PD2;
-	double angle;
-	double delay;
-	double anglex[SPECIES_NUM];
-	double anglez[SPECIES_NUM];
-	double argHD;
-	int count_num[SPECIES_NUM + ALL_SPECTR] = { 0 };
-	int indicator;
-	double n_coeff;
-
-	double c = 299792458;  // m/s
-	double lamda = 632.8e-9; // The wavelength of He-Ne laser
+	double raw_x,raw_y,raw_w;
+	double sumx,sumy,sumw, sumxyw, diffxy;
+	double raw_sumx,raw_sumy,raw_sumw, raw_sumxyw, raw_diffxy;
+	double PosX,PosY;
+	double r,phi;
+	double Xuv,Yuv,Xuw,Yuw,Xvw,Yvw;
+	double dX,dY;
 
 	//  Example of how to use spectrum commands
 	//	pDAnUserSP->AddOneAt(2,20);			// add one in spectrum 2 at channel 20
 	//	pDAnUserSP->AddValueAt(3,20,0.5);		// add 0.5 in spectrum 3 at channel 20
 
-	memset(counts, 0, 32 * sizeof(__int32));
+	memset(counts,0,32*sizeof(__int32));
 
 	double dMCPChannelData = 0.;
 
 	// get time information if present
-	if (i32TimeStamp)
+	if(i32TimeStamp)
 	{
 		// AbsoluteEventTime
-		AbsoluteEventTime = GetEventTime(preEventData, Parameter);
+		AbsoluteEventTime = GetEventTime(preEventData,Parameter);
 		// AbsoluteDeltaEventTime
-		DeltaEventTime = GetDeltaEventTime(preEventData, Parameter);
+		DeltaEventTime = GetDeltaEventTime(preEventData,Parameter);
 		// dEventCounter
 	}
 
-	if (racpRateAveragingInstance)
-		if (theDAnApp.SharedClassInstance)
+	if(racpRateAveragingInstance) 
+		if(theDAnApp.SharedClassInstance) 
 		{
 			racpRateAveragingInstance->ui32EventCounter += unsigned __int32(theDAnApp.SharedClassInstance->rate);
-			if (i32TimeStamp)
+			if(i32TimeStamp) 
 				racpRateAveragingInstance->CheckTimestamp(AbsoluteEventTime);
 		}
 
 	// dEventCounter
 	bool bdEventCounterReset = RoundToNearestInt32(Parameter[1040]) ? true : false;		// parameter 1040
-	if (bdEventCounterReset)
+	if(bdEventCounterReset)
 	{
 		dEventCounter = 0;
 		Parameter[1040] = false;
@@ -798,30 +610,30 @@ CDAN_API __int32 AnalysisProcessEvent(CDoubleArray &EventData, CDoubleArray &Par
 	dEventCounter += 1;
 
 	// Get Status Information
-	if (i32DAq_ID == DAQ_ID_HM1_ABM)
+	if(i32DAq_ID == DAQ_ID_HM1_ABM)
 	{
-		counts[0] = counts[1] = counts[2] = 1;
+		counts[0] = counts[1] = counts[2]= 1;
 		PLLStatusLocked = false;
 	}
-	else if ((i32DAq_ID == DAQ_ID_HM1) || (i32DAq_ID == DAQ_ID_2HM1))
+	else if((i32DAq_ID == DAQ_ID_HM1) || (i32DAq_ID == DAQ_ID_2HM1))
 	{
-		for (__int32 ch = 0; ch < 4; ++ch)
+		for (__int32 ch = 0; ch < 4 ; ++ch) 
 		{
-			counts[ch] = (RoundToNearestInt32(EventData[(i32StartDAqTDCData + ch*(i32NumberOfHits + 1))]) & 0x0007) - 1;
-			counts[ch] = counts[ch] < 0 ? 0 : counts[ch]; // correct negative (missed) hit
+			counts[ch] = (RoundToNearestInt32(EventData[(i32StartDAqTDCData+ch*(i32NumberOfHits+1))]) & 0x0007) -1;
+			counts[ch] = counts[ch] < 0 ?  0 : counts[ch]; // correct negative (missed) hit
 		}
 
-		PLLStatusLocked = (RoundToNearestInt32(EventData[(i32StartDAqTDCData + 0 * (i32NumberOfHits + 1))]) & 0x0080) &
-			(RoundToNearestInt32(EventData[(i32StartDAqTDCData + 1 * (i32NumberOfHits + 1))]) & 0x0080) &
-			(RoundToNearestInt32(EventData[(i32StartDAqTDCData + 2 * (i32NumberOfHits + 1))]) & 0x0080) &
-			(RoundToNearestInt32(EventData[(i32StartDAqTDCData + 3 * (i32NumberOfHits + 1))]) & 0x0080);
+		PLLStatusLocked = (RoundToNearestInt32(EventData[(i32StartDAqTDCData+0*(i32NumberOfHits+1))]) & 0x0080) &
+			(RoundToNearestInt32(EventData[(i32StartDAqTDCData+1*(i32NumberOfHits+1))]) & 0x0080) &
+			(RoundToNearestInt32(EventData[(i32StartDAqTDCData+2*(i32NumberOfHits+1))]) & 0x0080) &
+			(RoundToNearestInt32(EventData[(i32StartDAqTDCData+3*(i32NumberOfHits+1))]) & 0x0080);
 		PLLStatusLocked = PLLStatusLocked ? true : false;
 
 	}
-	else if ((i32DAq_ID == DAQ_ID_TDC8) || (i32DAq_ID == DAQ_ID_2TDC8 || (i32DAq_ID == DAQ_ID_HPTDC) || (i32DAq_ID == DAQ_ID_HPTDCRAW)))
+	else if((i32DAq_ID == DAQ_ID_TDC8) || (i32DAq_ID == DAQ_ID_2TDC8 || (i32DAq_ID == DAQ_ID_HPTDC) || (i32DAq_ID == DAQ_ID_HPTDCRAW)))
 	{
-		for (__int32 ch = 0; ch < i32NumberOfChannels; ++ch)
-			counts[ch] = RoundToNearestInt32(EventData[(i32StartDAqTDCData + ch*(i32NumberOfHits + 1))]);
+		for(__int32 ch = 0; ch < i32NumberOfChannels ; ++ch) 
+			counts[ch] = RoundToNearestInt32(EventData[(i32StartDAqTDCData+ch*(i32NumberOfHits+1))]);
 
 		PLLStatusLocked = false;
 	}
@@ -834,804 +646,310 @@ CDAN_API __int32 AnalysisProcessEvent(CDoubleArray &EventData, CDoubleArray &Par
 	ConsistencyIndicator += counts[i32Cx2] > 0 ? 2 : 0;
 	ConsistencyIndicator += counts[i32Cy1] > 0 ? 4 : 0;
 	ConsistencyIndicator += counts[i32Cy2] > 0 ? 8 : 0;
-	if (i32HexAnode)
+	if(i32HexAnode) 
 	{
 		ConsistencyIndicator += counts[i32Cz1] > 0 ? 16 : 0;
 		ConsistencyIndicator += counts[i32Cz2] > 0 ? 32 : 0;
 	}
 
-
-	// Saving the previous PosX, PosY, px, py, pz, anglex, anglez ///////////////////////////////////////////////////////////////////
-	int i, j;
-
-	if (N != 0)
-	{
-		for (i = 0; i <= SPECIES_NUM - 1; i++) {
-			prePosX[i] = PosX[i];
-			prePosY[i] = PosY[i];
-
-			preanglex[i] = atan2(pi[i][0], pi[i][1]);
-			preanglez[i] = atan2(pi[i][2], pi[i][1]);
-		}
-
-		for (i = 0; i <= 3; i++) {
-			for (j = 0; j <= 2; j++) {
-				prep[i][j] = pi[i][j];
-			}
-		}
-	}
-
-
-	// Set initial signals for every channels to 0 ///////////////////////////////////////////////////////////////////////////////////
-	for (i = 0; i <= SPECIES_NUM + ALL_SPECTR - 1; i++)
-	{
-		x1[i] = x2[i] = y1[i] = y2[i] = z1[i] = z2[i] = 0.;
-	}
-
-
-
-	// Extract each species within the TOF window /////////////////////////////////////////////////////////////////////////////////////
-
-	//specification of hit number
-	int selec[SPECIES_NUM] = { 0, 1, 0, 0, 1, 1, 1, 1, 1 };    // 1: extract from all NumberOfHits   0: extract from the first hit 
-
-	// x1
-	if (i32DAq_ID == DAQ_ID_HM1_ABM)
-		;
+	// Get Raw-Data
+	if(i32DAq_ID == DAQ_ID_HM1_ABM)
+		x1 = x2 = y1 = y2 = z1 = z2 = 0;
 	else
 	{
-		for (i = 0; i <= i32NumberOfHits - 1; i++)
+		x1 = EventData[(i32StartDAqTDCData+i32Cx1*(i32NumberOfHits+1)+i32UseHit)];
+		x2 = EventData[(i32StartDAqTDCData+i32Cx2*(i32NumberOfHits+1)+i32UseHit)];
+		y1 = EventData[(i32StartDAqTDCData+i32Cy1*(i32NumberOfHits+1)+i32UseHit)];
+		y2 = EventData[(i32StartDAqTDCData+i32Cy2*(i32NumberOfHits+1)+i32UseHit)];
+		if(i32HexAnode)
 		{
-			for (j = 0; j <= SPECIES_NUM - 1; j++) {
-				if ((tof_min[j] <= EventData[(i32StartDAqTDCData + i32Cx1*(i32NumberOfHits + 1) + i32UseHit + i * selec[j])])
-					&& (EventData[(i32StartDAqTDCData + i32Cx1*(i32NumberOfHits + 1) + i32UseHit + i * selec[j])] <= tof_max[j])) {
-					x1[j] = EventData[(i32StartDAqTDCData + i32Cx1*(i32NumberOfHits + 1) + i32UseHit + i * selec[j])];
-				}
-			}
-		}
-	}
+			z1 = EventData[(i32StartDAqTDCData+i32Cz1*(i32NumberOfHits+1)+i32UseHit)];
+			z2 = EventData[(i32StartDAqTDCData+i32Cz2*(i32NumberOfHits+1)+i32UseHit)];
+		} 
+		else 
+			z1 = z2 = 0.;
 
-	// x2
-	if (i32DAq_ID == DAQ_ID_HM1_ABM)
-		;
-	else
-	{
-		for (i = 0; i <= i32NumberOfHits - 1; i++)
+		if(i32TOFChannel >= 0) 
 		{
-			for (j = 0; j <= SPECIES_NUM - 1; j++) {
-				if ((tof_min[j] <= EventData[(i32StartDAqTDCData + i32Cx2*(i32NumberOfHits + 1) + i32UseHit + i * selec[j])])
-					&& (EventData[(i32StartDAqTDCData + i32Cx2*(i32NumberOfHits + 1) + i32UseHit + i * selec[j])] <= tof_max[j])) {
-					x2[j] = EventData[(i32StartDAqTDCData + i32Cx2*(i32NumberOfHits + 1) + i32UseHit + i * selec[j])];
-				}
-			}
-		}
-	}
-
-	// y1
-	if (i32DAq_ID == DAQ_ID_HM1_ABM)
-		;
-	else
-	{
-		for (i = 0; i <= i32NumberOfHits - 1; i++)
-		{
-			for (j = 0; j <= SPECIES_NUM - 1; j++) {
-				if ((tof_min[j] <= EventData[(i32StartDAqTDCData + i32Cy1*(i32NumberOfHits + 1) + i32UseHit + i * selec[j])])
-					&& (EventData[(i32StartDAqTDCData + i32Cy1*(i32NumberOfHits + 1) + i32UseHit + i * selec[j])] <= tof_max[j])) {
-					y1[j] = EventData[(i32StartDAqTDCData + i32Cy1*(i32NumberOfHits + 1) + i32UseHit + i * selec[j])];
-				}
-			}
-		}
-	}
-
-	// y2
-	if (i32DAq_ID == DAQ_ID_HM1_ABM)
-		;
-	else
-	{
-		for (i = 0; i <= i32NumberOfHits - 1; i++)
-		{
-			for (j = 0; j <= SPECIES_NUM - 1; j++) {
-				if ((tof_min[j] <= EventData[(i32StartDAqTDCData + i32Cy2*(i32NumberOfHits + 1) + i32UseHit + i * selec[j])])
-					&& (EventData[(i32StartDAqTDCData + i32Cy2*(i32NumberOfHits + 1) + i32UseHit + i * selec[j])] <= tof_max[j])) {
-					y2[j] = EventData[(i32StartDAqTDCData + i32Cy2*(i32NumberOfHits + 1) + i32UseHit + i * selec[j])];
-				}
-			}
-		}
-	}
-
-	// TOF spectrum for the whole TOF range, from 1st to ALL_SPECTR-th hit 
-	for (i = 0; i <= ALL_SPECTR - 1; i++) {
-		x1[SPECIES_NUM + i] = EventData[(i32StartDAqTDCData + i32Cx1*(i32NumberOfHits + 1) + i32UseHit + i)];
-		x2[SPECIES_NUM + i] = EventData[(i32StartDAqTDCData + i32Cx2*(i32NumberOfHits + 1) + i32UseHit + i)];
-		y1[SPECIES_NUM + i] = EventData[(i32StartDAqTDCData + i32Cy1*(i32NumberOfHits + 1) + i32UseHit + i)];
-		y2[SPECIES_NUM + i] = EventData[(i32StartDAqTDCData + i32Cy2*(i32NumberOfHits + 1) + i32UseHit + i)];
-	}
-
-	/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-
-	// Calculate correlation between H+ and O+ //////////////////////////////////////////////////////////////////////////////////////////////////
-	if ((x1[0] / 1000) * (x2[0] / 100) * (y1[0] / 100) * (y2[0] / 100) != 0) {
-
-		if ((x1[4] / 1000) * (x2[4] / 100) * (y1[4] / 100) * (y2[4] / 100) != 0) {
-			covH_flag = 1;
-
-			if (H_flag)
-				falseH_flag = 1;
+			if(counts[i32TOFChannel] > 0 ) 
+				TOF_ns = EventData[(i32StartDAqTDCData+i32TOFChannel*(i32NumberOfHits+1)+1)];
 			else
-				falseH_flag = 0;
+				TOF_ns = 0.;
 		}
-		else
-			covH_flag = 0;
-
-		H_flag = 1;
-	}
-	else {
-		covH_flag = 0;
-		H_flag = 0;
-		falseH_flag = 0;
-	}
-
-
-	// Calculate correlation between D+ and O+ //////////////////////////////////////////////////////////////////////////////////////////////////
-	if ((x1[1] / 1000) * (x2[1] / 100) * (y1[1] / 100) * (y2[1] / 100) != 0) {
-
-		if ((x1[4] / 1000) * (x2[4] / 100) * (y1[4] / 100) * (y2[4] / 100) != 0) {
-			covD_flag = 1;
-
-			if (D_flag)
-				falseD_flag = 1;
-			else
-				falseD_flag = 0;
-		}
-		else
-			covD_flag = 0;
-
-		D_flag = 1;
-	}
-	else {
-		covD_flag = 0;
-		D_flag = 0;
-		falseD_flag = 0;
-	}
-
-
-
-	// Delay-calculation ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-	// Photo diode signal (Ch4 and Ch5)
-	PD1 = EventData[(i32StartDAqTDCData + 4 * (i32NumberOfHits + 1) + i32UseHit)];
-	PD2 = EventData[(i32StartDAqTDCData + 5 * (i32NumberOfHits + 1) + i32UseHit)];
-
-	// Angle in the 2-dimensional spectrum PD1 vs PD2
-	angle = atan2(PD2 - PD2cent, PD1 - PD1cent);
-
-	// Anti-clockwise direction
-	if (preangle > 0 && angle < 0 && preangle - angle > PI) {
-		cycle += -csign;
-		direction = -csign;
-	}
-	else if (angle - preangle > 0) {
-		direction = -csign;
-	}
-
-	// Clockwise direction
-	if (preangle < 0 && angle > 0 && angle - preangle > PI) {
-		cycle += csign;
-		direction = csign;
-	}
-	else if (angle - preangle < 0) {
-		direction = csign;
-	}
-
-	delay = lamda * cycle * 2e15 / c; // fs
-
-	// Scan numbering
-	if (S1bool == 1 && cycle < S1) {
-		S1bool = 0;
-		S2bool = 1;
-		scan += 1;
-	}
-	if (S2bool == 1 && cycle > S2) {
-		S1bool = 1;
-		S2bool = 0;
-		scan += 1;
-	}
-
-	// Saving as previous angles for detecting the direction of motion in the next event
-	preangle = angle;
-	predelay = delay;
-
-	//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-
-	if (i32TOFChannel >= 0)
-	{
-		if (counts[i32TOFChannel] > 0)
-			TOF_ns = EventData[(i32StartDAqTDCData + i32TOFChannel*(i32NumberOfHits + 1) + 1)];
 		else
 			TOF_ns = 0.;
-	}
-	else
-		TOF_ns = 0.;
 
-    
-	// Count the number of channels with meaningful values ////////////////////////////////////////////////////////////////////////////////////////
-	for (i = 0; i <= SPECIES_NUM + ALL_SPECTR - 1; i++)
-	{
-		if (x1[i] != 0.)
-			count_num[i] += 1;
-		else
-			indicator = 1;
-		if (x2[i] != 0.)
-			count_num[i] += 1;
-		else
-			indicator = 2;
-		if (y1[i] != 0.)
-			count_num[i] += 1;
-		else
-			indicator = 3;
-		if (y2[i] != 0.)
-			count_num[i] += 1;
-		else
-			indicator = 4;
-	}
-
-	// For data with count_num = 3, retrieve the rest of the other three ////////////////////////////////////////////////////////////////////////
-	if (count3) {
-		for (i = 0; i <= SPECIES_NUM + ALL_SPECTR - 1; i++)
+		if(i32Cmcp != -1)
 		{
-			if (count_num[i] == 3)
+			dMCPChannelData = EventData[(i32Cmcp*(i32NumberOfHits+1)+i32UseHit)];
+			if (i32DAq_ID == DAQ_ID_HPTDC && Parameter[88] > 0.5)
+				TOF_ns = dMCPChannelData;
+			if (!(i32DAq_ID == DAQ_ID_HPTDC && Parameter[88] > 0.5)) 
 			{
-				switch (indicator) {
-				case 1: x1[i] = y1[i] + y2[i] - x2[i] + const_value; break;
-				case 2: x2[i] = y1[i] + y2[i] - x1[i] + const_value; break;
-				case 3: y1[i] = x1[i] + x2[i] - y2[i] - const_value; break;
-				case 4: y2[i] = x1[i] + x2[i] - y1[i] - const_value; break;
-				}
-			}
-			count_num[i] = 4;
-		}
-	}
-
-
-	// Start to calculate PosX, PosY, and TOF ///////////////////////////////////////////////////////////////////////////////////////////////////
-	for (i = 0; i <= SPECIES_NUM + ALL_SPECTR - 1; i++)
-	{
-
-		if (count_num[i] == 4 && Parameter[2060] <= cycle - center[scan] && cycle - center[scan] <= Parameter[2061])
-		{
-			if (i32Cmcp != -1)
-			{
-				dMCPChannelData = EventData[(i32Cmcp*(i32NumberOfHits + 1) + i32UseHit)];
-				if (i32DAq_ID == DAQ_ID_HPTDC && Parameter[88] > 0.5)
-					TOF_ns = dMCPChannelData;
-				if (!(i32DAq_ID == DAQ_ID_HPTDC && Parameter[88] > 0.5))
+				x1 -= dMCPChannelData;
+				x2 -= dMCPChannelData;
+				y1 -= dMCPChannelData;
+				y2 -= dMCPChannelData;
+				if(i32HexAnode)
 				{
-					x1[i] -= dMCPChannelData;
-					x2[i] -= dMCPChannelData;
-					y1[i] -= dMCPChannelData;
-					y2[i] -= dMCPChannelData;
-					if (i32HexAnode)
-					{
-						z1[i] -= dMCPChannelData;
-						z2[i] -= dMCPChannelData;
-					}
-					else
-						z1[i] = z2[i] = 0.;
-				}
-			}
-
-			// correct DNL if
-			if ((i32DAq_ID == DAQ_ID_HM1) && dDnlCorrection)
-			{
-				x1[i] = CorrectGP1NDL(x1[i], dDnlCorrection);
-				x2[i] = CorrectGP1NDL(x2[i], dDnlCorrection);
-				y1[i] = CorrectGP1NDL(y1[i], dDnlCorrection);
-				y2[i] = CorrectGP1NDL(y2[i], dDnlCorrection);
-			}
-
-			if (bAntiMoire)
-			{
-				x1[i] += Rnd() - 0.5;
-				x2[i] += Rnd() - 0.5;
-				y1[i] += Rnd() - 0.5;
-				y2[i] += Rnd() - 0.5;
-				if (i32HexAnode)
-				{
-					y1[i] += Rnd() - 0.5;
-					z2[i] += Rnd() - 0.5;
-				}
-				if (i32TOFChannel >= 0)
-					if (counts[i32TOFChannel] > 0)
-						TOF_ns += Rnd() - 0.5;
-			}
-
-			// now get the "real" position
-			if (i32DAq_ID == DAQ_ID_HM1_ABM)
-			{
-				raw_x[i] = RoundToNearestInt32(EventData[(i32StartDAqTDCData + 0)]);
-				raw_y[i] = RoundToNearestInt32(EventData[(i32StartDAqTDCData + 1)]);
-				raw_w[i] = RoundToNearestInt32(EventData[(i32StartDAqTDCData + 2)]);
-
-				raw_sumx[i] = raw_sumy[i] = raw_sumw[i] = raw_sumxyw[i] = raw_diffxy[i] = -1.e200;
-			}
-			else
-			{
-				raw_x[i] = (x1[i] - x2[i]);
-				raw_y[i] = (y1[i] - y2[i]);
-				raw_sumx[i] = x1[i] + x2[i];
-				raw_sumy[i] = y1[i] + y2[i];
-				raw_sumxyw[i] = raw_sumx[i] + raw_sumy[i];
-				raw_diffxy[i] = raw_sumx[i] - raw_sumy[i];
-				constant[i] = (x1[i] + x2[i]) - (y1[i] + y2[i]);
-
-				if (i32HexAnode)
-				{
-					raw_w[i] = (z1[i] - z2[i]);
-					raw_sumw[i] = z1[i] + z2[i];
-					raw_sumxyw[i] += raw_sumw[i];
+					z1 -= dMCPChannelData;
+					z2 -= dMCPChannelData;
 				}
 				else
-				{
-					raw_w[i] = -1.e200;
-					raw_sumw[i] = -1.e200;
-				}
+					z1 = z2 = 0.;
 			}
-
-			// Calculate tof and mass
-			tof[i] = raw_sumx[i] * a + b; //unit: us
-			mass[i] = -3.6174e-6 + 1.6725e-6 * tof[i] + 1.1309 * pow(tof[i], 2.);
-
-			// do conversion ? then first to time (ns)
-			if (i32Conversion)
-			{
-				x1[i] *= dTDCResolution;
-				x2[i] *= dTDCResolution;
-				y1[i] *= dTDCResolution;
-				y2[i] *= dTDCResolution;
-				dMCPChannelData *= dTDCResolution;
-				if (i32HexAnode)
-				{
-					z1[i] *= dTDCResolution;
-					z2[i] *= dTDCResolution;
-				}
-			}
-			TOF_ns *= dTDCResolution;
-
-			// sums and differences
-			// sums and differences in channels if parameter 1000 set to "channel"
-			// sums and differences in ns (TIME) if parameter 1000 set to other than "channel"
-			sumx[i] = (x1[i] + x2[i]) + dOSum;
-			sumy[i] = (y1[i] + y2[i]) + dOSum;
-			if (i32HexAnode)
-				sumw[i] = (z1[i] + z2[i]) + dOSum;
-			else
-				sumw[i] = 0;
-			if (i32HexAnode)
-				sumxyw[i] = (sumx[i] + sumy[i] + sumw[i]) - (2 * dOSum);		// only one OSum -> -(2*dOSum)!!!
-			else
-				sumxyw[i] = (sumx[i] + sumy[i]) - dOSum;			        	// only one OSum -> -(dOSum)!!!
-			diffxy[i] = (sumx[i] - sumy[i]) + dOSum;
-
-			// convert also to position? then to position (mm)
-			if (i32Conversion == 2)
-			{
-				x1[i] *= dTPCalX;
-				x2[i] *= dTPCalX;
-				y1[i] *= dTPCalY;
-				y2[i] *= dTPCalY;
-				if (i32HexAnode)
-				{
-					z1[i] *= dTPCalZ;
-					z2[i] *= dTPCalZ;
-				}
-			}
-
-			if (i32HexAnode)
-			{
-				double x = (x1[i] - x2[i])*0.5;
-				double y = (y1[i] - y2[i])*0.5;
-				PosX[i] = x + dOPx;
-				PosY[i] = (x - 2.*y) / sqrt(3.) + dOPy;
-			}
-			else
-			{
-				double x = (x1[i] - x2[i])*0.5;
-				double y = (y1[i] - y2[i])*0.5;
-				PosX[i] = x + dOPx;
-				PosY[i] = y + dOPy;
-			}
-
-			// do rotation
-			if (dRotA)
-			{
-				double xRot, yRot;
-				RotateXY(PosX[i], PosY[i], dRotA, i32PhiConversion, dCOx, dCOy, xRot, yRot);
-				PosX[i] = xRot;
-				PosY[i] = yRot;
-			}
-
-			// convert to r-phi
-			OrthoToRPhi(PosX[i], PosY[i], i32PhiConversion, dCRPhix, dCRPhiy, r, phi);
-
-			if (i32HexAnode)
-			{
-				double x = (x1[i] - x2[i])*0.5;
-				double y = (y1[i] - y2[i])*0.5;
-				double w = (z1[i] - z2[i])*0.5 + dOPw;
-				Xuv = x + dOPx;
-				Yuv = (x - 2.*y) / sqrt(3.) + dOPy;
-				Xuw = Xuv;
-				Yuw = (2.*w - x) / sqrt(3.) + dOPy;
-				Xvw = (y + w) + dOPx;
-				Yvw = (w - y) / sqrt(3.) + dOPy;
-				dX = Xuv - Xvw;
-				dY = Yuv - Yvw;
-			}
-			else
-				Xuv = Yuv = Xuw = Yuw = Xvw = Yvw = dX = dY = DBL_MAX;		// not hex anode -> set to DBL_MAX 
-		}
-		else
-		{
-			PosX[i] = PosY[i] = 100000;
-			tof[i] = 100000;
 		}
 	}
 
-
-	for (i = 0; i <= 4; i++)
+	// correct DNL if
+	if((i32DAq_ID == DAQ_ID_HM1) && dDnlCorrection)
 	{
-		constotal += constant[i];
+		x1 = CorrectGP1NDL(x1,dDnlCorrection);
+		x2 = CorrectGP1NDL(x2,dDnlCorrection);
+		y1 = CorrectGP1NDL(y1,dDnlCorrection);
+		y2 = CorrectGP1NDL(y2,dDnlCorrection);
 	}
 
-
-
-	double tofdiff[SPECIES_NUM] = { 0 };
-	double std_tof[SPECIES_NUM] = { 0.943774, 1.33455, 1.63454, 1.88734, 3.76132, 3.8772, 3.99106, 4.09893, 4.20541 }; 
-	
-	double xy_to_p[SPECIES_NUM] = { 1.01, 1.466, 1.8072, 2.0855, 4.0533, 4.1784, 4.4002, 4.5104, 4.66322 };
-	double tof_to_p1[SPECIES_NUM] = { -996.15, -1003.6, -1003.7, -1003.6, -1002.8, -1003.4, -1003.5, -1003.6, -1003.5 };
-	double tof_to_p2[SPECIES_NUM] = { 766.06, 554.63, 446.95, 386.59, 186.86, 187.6, 183.82, 179.9, 175 };  
-	double tof_to_p3[SPECIES_NUM] = { -1869, -883.57, -662.77, -464.44, -131.52, -111.83, -102.41, -95.457, -91.701 };  
-
-
-	// Define TOF deviation /////////////////////////////////////////////////////////////////////////////////
-	for (i = 0; i <= SPECIES_NUM - 1; i++) {
-		tofdiff[i] = tof[i] - std_tof[i];
+	if(bAntiMoire) 
+	{
+		x1 += Rnd()-0.5;
+		x2 += Rnd()-0.5;
+		y1 += Rnd()-0.5;
+		y2 += Rnd()-0.5;
+		if(i32HexAnode) 
+		{
+			z1 += Rnd()-0.5;
+			z2 += Rnd()-0.5;
+		}
+		if(i32TOFChannel >= 0) 
+			if(counts[i32TOFChannel] > 0 ) 
+				TOF_ns += Rnd()-0.5;
 	}
 
+	// now get the "real" position
+	if(i32DAq_ID == DAQ_ID_HM1_ABM)
+	{
+		raw_x = RoundToNearestInt32(EventData[(i32StartDAqTDCData+0)]);
+		raw_y = RoundToNearestInt32(EventData[(i32StartDAqTDCData+1)]);
+		raw_w = RoundToNearestInt32(EventData[(i32StartDAqTDCData+2)]);
 
-	// Calculate the momentum ///////////////////////////////////////////////////////////////////////////////
-	for (i = 0; i <= SPECIES_NUM - 1; i++) {
-		pi[i][0] = xy_to_p[i] * PosX[i] - pcent[i][0];
-		pi[i][1] = xy_to_p[i] * PosY[i] - pcent[i][1];
-		pi[i][2] = tof_to_p1[i] * tofdiff[i] + tof_to_p2[i] * pow(tofdiff[i], 2.) + tof_to_p3[i] * pow(tofdiff[i], 3.) - pcent[i][2];
-
-		anglex[i] = atan2(pi[i][0], pi[i][1]);
-		anglez[i] = atan2(pi[i][2], pi[i][1]);
+		raw_sumx = raw_sumy = raw_sumw = raw_sumxyw = raw_diffxy = -1.e200;
 	}
+	else
+	{
+		raw_x = (x1 - x2);
+		raw_y = (y1 - y2);
+		raw_sumx = x1+x2;
+		raw_sumy = y1+y2;
+		raw_sumxyw = raw_sumx + raw_sumy;
+		raw_diffxy = raw_sumx - raw_sumy;
 
-	for (i = 0; i <= 2; i++) {
-		pXwX[0][i] = -(pi[0][i] + pi[4][i]);
-		pXwX[1][i] = -(pi[0][i] + pi[4][i]);
-		pXwX[2][i] = -(pi[1][i] + pi[4][i]);
-		pXwX[3][i] = -(pi[1][i] + pi[4][i]);
-	}
-
-	for (i = 0; i <= 2; i++) {
-		prepXwX[0][i] = -(prep[0][i] + pi[4][i]);
-		prepXwX[1][i] = -(prep[0][i] + pi[4][i]);
-		prepXwX[2][i] = -(prep[1][i] + pi[4][i]);
-		prepXwX[3][i] = -(prep[1][i] + pi[4][i]);
-	}
-
-
-	for (i = 0; i <= SPECIES_NUM - 1; i++) {
-		ptot[i] = sqrt( pow(pi[i][0], 2.) + pow(pi[i][1], 2.) + pow(pi[i][2], 2.) );
-	}
-	
-	for (i = 0; i < 4; i++) {
-		ptotXwX[i] = sqrt(pow(pXwX[i][0], 2.) + pow(pXwX[i][1], 2.) + pow(pXwX[i][2], 2.));
-	}
-
-	// Calculate the momentum angle between H and D /////////////////////////////////////////////////////////
-	argHD = acos((pi[0][0] * pi[1][0] + pi[0][1] * pi[1][1] + pi[0][2] * pi[1][2]) / (ptot[0] * ptot[1]));
-
-
-	// Calculate the previous total momentum ////////////////////////////////////////////////////////////////
-	for (i = 0; i < 4; i++) {
-		preptot[i] = sqrt(pow(prep[i][0], 2.) + pow(prep[i][1], 2.) + pow(prep[i][2], 2.));
-		preptotXwX[i] = sqrt(pow(prepXwX[i][0], 2.) + pow(prepXwX[i][1], 2.) + pow(prepXwX[i][2], 2.));
-	}
-
-	// Define the mass of each species //////////////////////////////////////////////////////////////////////
-	double mH = 1.673e-27;     // kg
-	double mD = mH * 2;        // kg
-	double mHD = mH * 3;       // kg
-	double mD2 = mH * 4;       // kg
-	double mO = 2.66e-26;      // kg
-	double mOH = mH + mO;      // kg
-	double mOD = mD + mO;      // kg
-	double mHDO = mH + mD + mO;
-	double mD2O = 2 * mD + mO;
-	double m[SPECIES_NUM] = { mH,mD,mHD,mD2,mO,mOH,mOD,mHDO,mD2O };  // ohkyu shochi
-	double e = 1.6021766208e-19;  // C
-
-	for (i = 0; i <= SPECIES_NUM - 1; i++) {
-		KER[i]    = pow(ptot[i] * 1.66054e-24, 2.) / (2 * m[i] * e);
-		if ( i < 4 )
-		preKER[i] = pow(preptot[i] * 1.66054e-24, 2.) / (2 * m[i] * e);
-	}
-
-	KERXwX[0] = pow(ptotXwX[0] * 1.66054e-24, 2.) / (2 * m[0] * e);
-	KERXwX[1] = pow(ptotXwX[1] * 1.66054e-24, 2.) / (2 * m[1] * e);
-	KERXwX[2] = pow(ptotXwX[2] * 1.66054e-24, 2.) / (2 * m[1] * e);
-	KERXwX[3] = pow(ptotXwX[3] * 1.66054e-24, 2.) / (2 * m[0] * e);
-
-	preKERXwX[0] = pow(preptotXwX[0] * 1.66054e-24, 2.) / (2 * m[0] * e);
-	preKERXwX[1] = pow(preptotXwX[1] * 1.66054e-24, 2.) / (2 * m[1] * e);
-	preKERXwX[2] = pow(preptotXwX[2] * 1.66054e-24, 2.) / (2 * m[1] * e);
-	preKERXwX[3] = pow(preptotXwX[3] * 1.66054e-24, 2.) / (2 * m[0] * e);
-
-
-	for (i = 0; i <= CH_NUM - 1; i++) {
-		for (j = 1; j <= Chs[i][0]; j++) {
-			sump[i][0] += pi[ Chs[i][j] ][0];
-			sump[i][1] += pi[ Chs[i][j] ][1];
-			sump[i][2] += pi[ Chs[i][j] ][2];
-			KER_Ch[i] += KER[Chs[i][j]];
-
-			presump[i][0] += (j == 1) ? prep[ Chs[i][j] ][0] : pi[ Chs[i][j] ][0];
-			presump[i][1] += (j == 1) ? prep[ Chs[i][j] ][1] : pi[ Chs[i][j] ][1];
-			presump[i][2] += (j == 1) ? prep[ Chs[i][j] ][2] : pi[ Chs[i][j] ][2];
-			preKER_Ch[i]  += (j == 1) ? preKER[ Chs[i][j] ]  : KER[ Chs[i][j] ];
+		if(i32HexAnode) 
+		{
+			raw_w = (z1 - z2);
+			raw_sumw = z1+z2;
+			raw_sumxyw += raw_sumw;
+		} 
+		else 
+		{
+			raw_w    = -1.e200;
+			raw_sumw = -1.e200;
 		}
 	}
 
-	KER_Ch6XwX[0] = KERXwX[0] + KER[0] + KER[4];
-	KER_Ch6XwX[1] = KERXwX[1] + KER[0] + KER[4];
-	KER_Ch6XwX[2] = KERXwX[2] + KER[1] + KER[4];
-	KER_Ch6XwX[3] = KERXwX[3] + KER[1] + KER[4];
+	// do conversion ? then first to time (ns)
+	if(i32Conversion)
+	{
+		x1 *= dTDCResolution;
+		x2 *= dTDCResolution;
+		y1 *= dTDCResolution;
+		y2 *= dTDCResolution;
+		dMCPChannelData *= dTDCResolution;
+		if(i32HexAnode)
+		{
+			z1 *= dTDCResolution;
+			z2 *= dTDCResolution;
+		}
+	}
+	TOF_ns *= dTDCResolution;
 
-	preKER_Ch6XwX[0] = preKERXwX[0] + preKER[0] + KER[4];
-	preKER_Ch6XwX[1] = preKERXwX[1] + preKER[0] + KER[4];
-	preKER_Ch6XwX[2] = preKERXwX[2] + preKER[1] + KER[4];
-	preKER_Ch6XwX[3] = preKERXwX[3] + preKER[1] + KER[4];
+	// sums and differences
+	// sums and differences in channels if parameter 1000 set to "channel"
+	// sums and differences in ns (TIME) if parameter 1000 set to other than "channel"
+	sumx = (x1 + x2) + dOSum;
+	sumy = (y1 + y2) + dOSum;
+	if(i32HexAnode)
+		sumw = (z1 + z2) + dOSum;
+	else
+		sumw = 0;
+	if(i32HexAnode)
+		sumxyw = (sumx + sumy + sumw) - (2*dOSum);		// only one OSum -> -(2*dOSum)!!!
+	else
+		sumxyw = (sumx + sumy) - dOSum;				// only one OSum -> -(dOSum)!!!
+	diffxy = (sumx - sumy) + dOSum;
 
-	N += 1;
-	n_coeff = 500.0 / (double)n_cnst[scan][cycle - (int)Parameter[2060]];
+	// convert also to position? then to position (mm)
+	if(i32Conversion == 2)
+	{
+		x1 *= dTPCalX;
+		x2 *= dTPCalX;
+		y1 *= dTPCalY;
+		y2 *= dTPCalY;
+		if(i32HexAnode)
+		{
+			z1 *= dTPCalZ;
+			z2 *= dTPCalZ;
+		}
+	}
 
+	if(i32HexAnode)
+	{
+		double x = (x1-x2)*0.5;
+		double y = (y1-y2)*0.5;
+		PosX = x + dOPx;
+		PosY =  (x-2.*y)/sqrt(3.) + dOPy;
+	}
+	else
+	{
+		double x = (x1-x2)*0.5;
+		double y = (y1-y2)*0.5;
+		PosX = x + dOPx;
+		PosY = y + dOPy;
+	}
+
+	// do rotation
+	if(dRotA) 
+	{
+		double xRot,yRot;
+		RotateXY(PosX, PosY, dRotA, i32PhiConversion, dCOx, dCOy, xRot, yRot);
+		PosX = xRot;
+		PosY = yRot;
+	}
+
+	// convert to r-phi
+	OrthoToRPhi(PosX, PosY, i32PhiConversion, dCRPhix, dCRPhiy, r, phi);
+
+	if(i32HexAnode)
+	{
+		double x = (x1-x2)*0.5;
+		double y = (y1-y2)*0.5;
+		double w = (z1-z2)*0.5 + dOPw;
+		Xuv	=	x + dOPx;
+		Yuv	=	(x - 2.*y)/sqrt(3.) + dOPy;
+		Xuw	=	Xuv;
+		Yuw	=	(2.*w-x)/sqrt(3.) + dOPy;
+		Xvw	=	(y+w) + dOPx;
+		Yvw	=	(w-y)/sqrt(3.) + dOPy;
+		dX	=	Xuv - Xvw;
+		dY	=	Yuv - Yvw;
+	}
+	else
+		Xuv = Yuv = Xuw = Yuw = Xvw = Yvw = dX = dY = DBL_MAX;		// not hex anode -> set to DBL_MAX 
 
 	/////////////////////////////////////
 	// write all data back to coordinates
 	/////////////////////////////////////
 	__int32 address = 0;
-	EventData[i32StartDAnData + address++] = AbsoluteEventTime;
-	EventData[i32StartDAnData + address++] = DeltaEventTime;
-	EventData[i32StartDAnData + address++] = dEventCounter;
-	EventData[i32StartDAnData + address++] = True;
-	EventData[i32StartDAnData + address++] = 0;                 // false
-	EventData[i32StartDAnData + address++] = ConsistencyIndicator;
-	EventData[i32StartDAnData + address++] = PLLStatusLocked;
+	EventData[i32StartDAnData+address++] = AbsoluteEventTime;
+	EventData[i32StartDAnData+address++] = DeltaEventTime;
+	EventData[i32StartDAnData+address++] = dEventCounter;
+	EventData[i32StartDAnData+address++] = True;
+	EventData[i32StartDAnData+address++] = 0; // false
+	EventData[i32StartDAnData+address++] = ConsistencyIndicator;
+	EventData[i32StartDAnData+address++] = PLLStatusLocked;
 
-	if (racpRateAveragingInstance)
-		EventData[i32StartDAnData + address++] = racpRateAveragingInstance->ui32Rate;	// rate
+	if(racpRateAveragingInstance)
+		EventData[i32StartDAnData+address++] = racpRateAveragingInstance->ui32Rate;	// rate
 	else
-		EventData[i32StartDAnData + address++] = 0.;            // rate  
+		EventData[i32StartDAnData+address++] = 0.; // rate
 
-	EventData[i32StartDAnData + address++] = Parameter[1060];	// manually set Condition1
+	EventData[i32StartDAnData+address++] = Parameter[1060];	// manually set Condition1
 
-	for (__int32 ch = 0; ch < 8; ++ch)					    	// hit counter of the first 9 channels
-		EventData[i32StartDAnData + address++] = counts[ch];
+	for (__int32 ch = 0; ch<8; ++ch)						// hit counter of the first 9 channels
+		EventData[i32StartDAnData+address++] = counts[ch];
 
-	EventData[i32StartDAnData + address++] = x1[0];
-	EventData[i32StartDAnData + address++] = x2[0];
-	EventData[i32StartDAnData + address++] = y1[0];
-	EventData[i32StartDAnData + address++] = y2[0];
-	EventData[i32StartDAnData + address++] = z1[0];
-	EventData[i32StartDAnData + address++] = z2[0];
+	EventData[i32StartDAnData+address++] = x1;
+	EventData[i32StartDAnData+address++] = x2;
+	EventData[i32StartDAnData+address++] = y1;
+	EventData[i32StartDAnData+address++] = y2;
+	EventData[i32StartDAnData+address++] = z1;
+	EventData[i32StartDAnData+address++] = z2;
 
-	EventData[i32StartDAnData + address++] = TOF_ns;
+	EventData[i32StartDAnData+address++] = TOF_ns;
 
-	EventData[i32StartDAnData + address++] = raw_x[0];
-	EventData[i32StartDAnData + address++] = raw_y[0];
-	EventData[i32StartDAnData + address++] = raw_w[0];
+	EventData[i32StartDAnData+address++] = raw_x;
+	EventData[i32StartDAnData+address++] = raw_y;
+	EventData[i32StartDAnData+address++] = raw_w;
 
-	EventData[i32StartDAnData + address++] = raw_sumx[0];
-	EventData[i32StartDAnData + address++] = raw_sumy[0];
-	EventData[i32StartDAnData + address++] = raw_sumw[0];
-	EventData[i32StartDAnData + address++] = raw_sumxyw[0];
-	EventData[i32StartDAnData + address++] = raw_diffxy[0];
+	EventData[i32StartDAnData+address++] = raw_sumx;
+	EventData[i32StartDAnData+address++] = raw_sumy;
+	EventData[i32StartDAnData+address++] = raw_sumw;
+	EventData[i32StartDAnData+address++] = raw_sumxyw;
+	EventData[i32StartDAnData+address++] = raw_diffxy;
 
-	EventData[i32StartDAnData + address++] = raw_sumx[1];
+	EventData[i32StartDAnData+address++] = sumx;
+	EventData[i32StartDAnData+address++] = sumy;
+	EventData[i32StartDAnData+address++] = sumw;
+	EventData[i32StartDAnData+address++] = sumxyw;
 
-	for (i = 0; i <= SPECIES_NUM - 1; i++)
-		EventData[i32StartDAnData + address++] = tof[i];
+	EventData[i32StartDAnData+address++] = diffxy;
 
-	for (i = 0; i <= SPECIES_NUM - 1; i++)
-		EventData[i32StartDAnData + address++] = mass[i];
+	EventData[i32StartDAnData+address++] = PosX;
+	EventData[i32StartDAnData+address++] = PosY;
 
-	for (i = 0; i <= ALL_SPECTR - 1; i++)
-		EventData[i32StartDAnData + address++] = tof[SPECIES_NUM + i];
+	EventData[i32StartDAnData+address++] = r;
+	EventData[i32StartDAnData+address++] = phi;
 
-	for (i = 0; i <= ALL_SPECTR - 1; i++)
-		EventData[i32StartDAnData + address++] = mass[SPECIES_NUM + i];
+	EventData[i32StartDAnData+address++] = Xuv;
+	EventData[i32StartDAnData+address++] = Yuv;
+	EventData[i32StartDAnData+address++] = Xuw;
+	EventData[i32StartDAnData+address++] = Yuw;
+	EventData[i32StartDAnData+address++] = Xvw;
+	EventData[i32StartDAnData+address++] = Yvw;
 
-	for (i = 0; i <= SPECIES_NUM - 1; i++) {
-		for (j = 0; j <= 2; j++) {
-			EventData[i32StartDAnData + address++] = pi[i][j];
-		}
-	}
-
-	for (i = 0; i < 4; i++) {
-		for (j = 0; j < 3; j++) {
-			EventData[i32StartDAnData + address++] = pXwX[i][j];
-		}
-	}
-
-	for (i = 0; i <= SPECIES_NUM - 1; i++)
-		EventData[i32StartDAnData + address++] = anglex[i];
-
-	for (i = 0; i <= SPECIES_NUM - 1; i++)
-		EventData[i32StartDAnData + address++] = anglez[i];
-
-	EventData[i32StartDAnData + address++] = argHD;
-
-	for (i = 0; i <= 4 - 1; i++) {
-		for (j = 0; j <= 2; j++) {
-			EventData[i32StartDAnData + address++] = prep[i][j];
-		}
-	}
-
-	for (i = 0; i < 4; i++) {
-		for (j = 0; j < 3; j++) {
-			EventData[i32StartDAnData + address++] = prepXwX[i][j];
-		}
-	}
-
-	for (i = 0; i <= SPECIES_NUM - 1; i++)
-		EventData[i32StartDAnData + address++] = preanglex[i];
-
-	for (i = 0; i <= SPECIES_NUM - 1; i++)
-		EventData[i32StartDAnData + address++] = preanglez[i];
-
-
-	for (i = 0; i <= CH_NUM - 1; i++) {
-		for (j = 0; j <= 2; j++) {
-			EventData[i32StartDAnData + address++] = sump[i][j];
-		}
-	}
-
-	for (i = 0; i <= CH_NUM - 1; i++) {
-		for (j = 0; j <= 2; j++) {
-			EventData[i32StartDAnData + address++] = presump[i][j];
-		}
-	}
-
-	for (i = 0; i <= SPECIES_NUM - 1; i++)
-		EventData[i32StartDAnData + address++] = KER[i];
-
-	for (i = 0; i <= CH_NUM - 1; i++)
-		EventData[i32StartDAnData + address++] = KER_Ch[i];
-
-	for (i = 0; i <= 4 - 1; i++)
-		EventData[i32StartDAnData + address++] = preKER[i];
-
-	for (i = 0; i <= CH_NUM - 1; i++)
-		EventData[i32StartDAnData + address++] = preKER_Ch[i];
-
-	for (i = 0; i < 4; i++) {
-		EventData[i32StartDAnData + address++] = KERXwX[i];
-	}
-
-	for (i = 0; i < 4; i++) {
-		EventData[i32StartDAnData + address++] = KER_Ch6XwX[i];
-	}
-
-	for (i = 0; i < 4; i++) {
-		EventData[i32StartDAnData + address++] = preKERXwX[i];
-	}
-
-	for (i = 0; i < 4; i++) {
-		EventData[i32StartDAnData + address++] = preKER_Ch6XwX[i];
-	}
-
-
-	EventData[i32StartDAnData + address++] = sumx[0];
-	EventData[i32StartDAnData + address++] = sumy[0];
-	EventData[i32StartDAnData + address++] = sumw[0];
-	EventData[i32StartDAnData + address++] = sumxyw[0];
-
-	EventData[i32StartDAnData + address++] = diffxy[0];
-
-	for (i = 0; i <= SPECIES_NUM - 1; i++) {
-		EventData[i32StartDAnData + address++] = PosX[i];
-		EventData[i32StartDAnData + address++] = PosY[i];
-	}
-
-	for (i = 0; i <= ALL_SPECTR - 1; i++) {
-		EventData[i32StartDAnData + address++] = PosX[SPECIES_NUM + i];
-		EventData[i32StartDAnData + address++] = PosY[SPECIES_NUM + i];
-	}
-    
-	for (i = 0; i <= SPECIES_NUM - 1; i++) {
-		EventData[i32StartDAnData + address++] = prePosX[i];
-		EventData[i32StartDAnData + address++] = prePosY[i];
-	}
-
-	EventData[i32StartDAnData + address++] = count_num[0];
-	EventData[i32StartDAnData + address++] = count_num[5];
-
-	EventData[i32StartDAnData + address++] = constotal;
-
-	EventData[i32StartDAnData + address++] = N;
-
-	EventData[i32StartDAnData + address++] = PD1;
-	EventData[i32StartDAnData + address++] = PD2;
-
-	EventData[i32StartDAnData + address++] = direction;
-	EventData[i32StartDAnData + address++] = cycle - center[scan];
-	EventData[i32StartDAnData + address++] = scan;
-	EventData[i32StartDAnData + address++] = delay;
-
-	EventData[i32StartDAnData + address++] = r;
-	EventData[i32StartDAnData + address++] = phi;
-
-	EventData[i32StartDAnData + address++] = Xuv;
-	EventData[i32StartDAnData + address++] = Yuv;
-	EventData[i32StartDAnData + address++] = Xuw;
-	EventData[i32StartDAnData + address++] = Yuw;
-	EventData[i32StartDAnData + address++] = Xvw;
-	EventData[i32StartDAnData + address++] = Yvw;
-
-	EventData[i32StartDAnData + address++] = dX;
-	EventData[i32StartDAnData + address++] = dY;
-
-	WeighParameter[0] = n_coeff;
-	WeighParameter[1] = n_coeff * (double)covH_flag;
-	WeighParameter[2] = n_coeff * (double)falseH_flag;
+	EventData[i32StartDAnData+address++] = dX;
+	EventData[i32StartDAnData+address++] = dY;
 
 	double dMcpSignalDiff = -1.e200;
-	if (i32NumberOfHits > 1)
+	if(i32NumberOfHits > 1)
 	{
-		if (i32Cmcp > -1)
+		if(i32Cmcp > -1)
 		{
-			if (counts[i32Cmcp] > 1)
+			if(counts[i32Cmcp] > 1) 
 			{
-				dMcpSignalDiff = EventData[(i32StartDAqTDCData + i32Cmcp*(i32NumberOfHits + 1) + 2)] - EventData[(i32StartDAqTDCData + i32Cmcp*(i32NumberOfHits + 1) + 1)];
+				dMcpSignalDiff = EventData[(i32StartDAqTDCData+i32Cmcp*(i32NumberOfHits+1)+2)] - EventData[(i32StartDAqTDCData+i32Cmcp*(i32NumberOfHits+1)+1)];
 				dMcpSignalDiff *= dTDCResolution;
 			}
 		}
-		else if (i32Cmcp == -1)
+		else if(i32Cmcp == -1)
 		{	// if Parameter 1025 is set to 0 then perform the calculations for Hit2-Hit1 on TDC Channel 8 (normally x1)
 			__int32 _i32Cmcp = 7;
-			if (counts[_i32Cmcp] > 1)
+			if(counts[_i32Cmcp] > 1) 
 			{
-				dMcpSignalDiff = EventData[(i32StartDAqTDCData + _i32Cmcp*(i32NumberOfHits + 1) + 2)] - EventData[(i32StartDAqTDCData + _i32Cmcp*(i32NumberOfHits + 1) + 1)];
+				dMcpSignalDiff = EventData[(i32StartDAqTDCData+_i32Cmcp*(i32NumberOfHits+1)+2)] - EventData[(i32StartDAqTDCData+_i32Cmcp*(i32NumberOfHits+1)+1)];
 				dMcpSignalDiff *= dTDCResolution;
 			}
 		}
 	}
-	EventData[i32StartDAnData + address++] = dMcpSignalDiff;
+	EventData[i32StartDAnData+address++] = dMcpSignalDiff;
 
-	EventData[i32StartDAnData + address++] = GetReflectionValue(i32Cx1, i32Cx2, counts, EventData);
-	EventData[i32StartDAnData + address++] = GetReflectionValue(i32Cx2, i32Cx1, counts, EventData);
-	EventData[i32StartDAnData + address++] = GetReflectionValue(i32Cy1, i32Cy2, counts, EventData);
-	EventData[i32StartDAnData + address++] = GetReflectionValue(i32Cy2, i32Cy1, counts, EventData);
-	if (i32HexAnode)
+	EventData[i32StartDAnData+address++] = GetReflectionValue(i32Cx1,i32Cx2,counts, EventData);
+	EventData[i32StartDAnData+address++] = GetReflectionValue(i32Cx2,i32Cx1,counts, EventData);
+	EventData[i32StartDAnData+address++] = GetReflectionValue(i32Cy1,i32Cy2,counts, EventData);
+	EventData[i32StartDAnData+address++] = GetReflectionValue(i32Cy2,i32Cy1,counts, EventData);
+	if(i32HexAnode) 
 	{
-		EventData[i32StartDAnData + address++] = GetReflectionValue(i32Cz1, i32Cz2, counts, EventData);
-		EventData[i32StartDAnData + address++] = GetReflectionValue(i32Cz2, i32Cz1, counts, EventData);
-	}
-	else
+		EventData[i32StartDAnData+address++] = GetReflectionValue(i32Cz1,i32Cz2,counts, EventData);
+		EventData[i32StartDAnData+address++] = GetReflectionValue(i32Cz2,i32Cz1,counts, EventData);
+	} 
+	else 
 	{
-		EventData[i32StartDAnData + address++] = -1.e200;
-		EventData[i32StartDAnData + address++] = -1.e210;
+		EventData[i32StartDAnData+address++] = -1.e200;
+		EventData[i32StartDAnData+address++] = -1.e210;
 	}
 
-	for (__int32 ch = 0; ch < i32NumberOfChannels; ++ch)								// const 1-i32NumberOfChannels
-		EventData[i32StartDAnData + address++] = double(ch + 1);						// must be the last coordinates
+	for (__int32 ch = 0; ch<i32NumberOfChannels; ++ch)								// const 1-i32NumberOfChannels
+		EventData[i32StartDAnData+address++] = double(ch+1);						// must be the last coordinates
 
 	CCoboldParser *pParser = GetCCoboldParser();
 	pParser->execute_all_commands();
@@ -1639,31 +957,30 @@ CDAN_API __int32 AnalysisProcessEvent(CDoubleArray &EventData, CDoubleArray &Par
 	return true;
 }
 
-
 ///////////////////////
 // AnalysisFinalize
 ///////////////////////
 // is called when analysis is stopped (not paused!)
 /////////////////////////////////////////////////////////////////////////////
-CDAN_API __int32 AnalysisFinalize(CDoubleArray &EventData, CDoubleArray &Parameter, CDoubleArray &WeighParameter)
+CDAN_API __int32 AnalysisFinalize(CDoubleArray &EventData,CDoubleArray &Parameter, CDoubleArray &WeighParameter)
 {
 	int iFileNum;
 	CString csPathName, csBasePathName;
 	int iStart, iEnd;
-	bool ret = pDAnUserSP->GetMultiFileInformation(iFileNum, csPathName, csBasePathName, iStart, iEnd, bFirstFile, bLastFile);
-	if (bLastFile)
+	bool ret = pDAnUserSP->GetMultiFileInformation(iFileNum,csPathName,csBasePathName,iStart,iEnd,bFirstFile,bLastFile);
+	if(bLastFile)
 		bLastFile = true;
 
-	if (theDAnApp.SharedClassInstance)
+	if(theDAnApp.SharedClassInstance) 
 		theDAnApp.SharedClassInstance->bDAnIsRunning = false;
 
-	if (racpRateAveragingInstance)
+	if(racpRateAveragingInstance) 
 	{
 		delete racpRateAveragingInstance;
 		racpRateAveragingInstance = 0;
 	}
 
-	if (pDAnUserSP)
+	if(pDAnUserSP)
 	{
 		delete pDAnUserSP;
 		pDAnUserSP = nullptr;
@@ -1674,16 +991,16 @@ CDAN_API __int32 AnalysisFinalize(CDoubleArray &EventData, CDoubleArray &Paramet
 //////////////////////////////////////////////////////////////////////////
 // Helper functions
 //////////////////////////////////////////////////////////////////////////
-double GetReflectionValue(__int32 C1, __int32 C2, __int32 counts[], CDoubleArray &EventData)
+double GetReflectionValue(__int32 C1,__int32 C2, __int32 counts[], CDoubleArray &EventData) 
 {
 	double refl = -1.e100;
 
-	if (C2 > -1 && C2 > -1)
+	if(C2 > -1 && C2 > -1) 
 	{
-		if (counts[C2] > 0 && counts[C1] > 1 && i32NumberOfHits > 1)
+		if(counts[C2] > 0 && counts[C1] > 1 && i32NumberOfHits > 1) 
 		{
-			double a = dTDCResolution * EventData[(i32StartDAqTDCData + C1*(i32NumberOfHits + 1) + 2)];
-			double b = dTDCResolution * EventData[(i32StartDAqTDCData + C2*(i32NumberOfHits + 1) + 1)];
+			double a = dTDCResolution * EventData[(i32StartDAqTDCData+C1*(i32NumberOfHits+1)+2)];
+			double b = dTDCResolution * EventData[(i32StartDAqTDCData+C2*(i32NumberOfHits+1)+1)];
 			refl = a - b;
 		}
 	}

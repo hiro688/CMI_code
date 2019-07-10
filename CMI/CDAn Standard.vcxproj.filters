@@ -1,0 +1,108 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Source Files">
+      <UniqueIdentifier>{ecedb134-a1e7-4be3-aacf-2d1b0f530c2e}</UniqueIdentifier>
+      <Extensions>cpp;c;cxx;rc;def;r;odl;hpj;bat;for;f90</Extensions>
+    </Filter>
+    <Filter Include="Header Files">
+      <UniqueIdentifier>{fa84dcde-0b89-43ad-b6f8-038c97abd4a5}</UniqueIdentifier>
+      <Extensions>h;hpp;hxx;hm;inl;fi;fd</Extensions>
+    </Filter>
+    <Filter Include="Resource Files">
+      <UniqueIdentifier>{dd6d264c-0403-4ee7-a9be-4dc9293a9d3a}</UniqueIdentifier>
+      <Extensions>ico;cur;bmp;dlg;rc2;rct;bin;cnt;rtf;gif;jpg;jpeg;jpe</Extensions>
+    </Filter>
+    <Filter Include="Libraries">
+      <UniqueIdentifier>{1b5a7146-348f-413d-be06-a9b48440d278}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="StdAfx.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="CDAn.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="DAnUtilities.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="StandardDAn.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="CheckProcess.H">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="CoboldUtilities.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="LMFPreEventData.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="LMInfo.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="StdAfx.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="UserSP.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="UserSHM.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="CoboldParser.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="CDan.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="CDAq.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="DAnUtilities.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Resource.h">
+      <Filter>Resource Files</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="CDAn.rc">
+      <Filter>Resource Files</Filter>
+    </ResourceCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="res\CDAn.rc2">
+      <Filter>Resource Files</Filter>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <Library Include="CoboldParser_x64.lib">
+      <Filter>Libraries</Filter>
+    </Library>
+    <Library Include="CoboldParser_x86.lib">
+      <Filter>Libraries</Filter>
+    </Library>
+    <Library Include="CoboldUtilities_x64.lib">
+      <Filter>Libraries</Filter>
+    </Library>
+    <Library Include="UserSHM_x64.lib">
+      <Filter>Libraries</Filter>
+    </Library>
+    <Library Include="UserSHM_x86.lib">
+      <Filter>Libraries</Filter>
+    </Library>
+    <Library Include="UserSP_x64.lib">
+      <Filter>Libraries</Filter>
+    </Library>
+    <Library Include="UserSP_x86.lib">
+      <Filter>Libraries</Filter>
+    </Library>
+    <Library Include="CoboldUtilities_x86.lib">
+      <Filter>Libraries</Filter>
+    </Library>
+  </ItemGroup>
+</Project>
