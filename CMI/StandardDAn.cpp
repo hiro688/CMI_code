@@ -27,6 +27,14 @@
 static char THIS_FILE[] = __FILE__;
 #endif
 
+// イオン種の数
+// H, H2, HD, D2, O, OH, H2O, HDO, D2Oの９種類
+#define SPECIES_NUM 9
+
+// 何ヒット目までTOFスペクトルを表示するか
+#define TOFSPEC_NUM 5
+
+
 /////////////////////////////////////////////////////////////////////////////
 // insert the subprogram part for software insert here
 // ------> update dependencies <------
@@ -281,6 +289,13 @@ __int32 i32StartDAqTDCData;
 double dEventCounter = 0;	// dEventCounter for the data in LM-file
 
 RateAveragingClass *racpRateAveragingInstance;
+
+
+// original parameters ------------------------------------------------------
+double a, b;                   // parameter 2000-2001
+double tof_min[SPECIES_NUM];
+double tof_max[SPECIES_NUM];   // parameter 2010-2027
+
 
 /////////////////////////////////////////////////////////////////////////////
 // MFM info variables
@@ -564,15 +579,21 @@ CDAN_API __int32 AnalysisProcessEvent(CDoubleArray &EventData,CDoubleArray &Para
 	__int32 PLLStatusLocked;			// totally locked then true else false
 
 	__int32 counts[32];
-	double x1,x2,y1,y2,z1,z2;
+	double x1[SPECIES_NUM + TOFSPEC_NUM], x2[SPECIES_NUM + TOFSPEC_NUM];
+	double y1[SPECIES_NUM + TOFSPEC_NUM], y2[SPECIES_NUM + TOFSPEC_NUM];
+	double z1[SPECIES_NUM + TOFSPEC_NUM], z2[SPECIES_NUM + TOFSPEC_NUM];
 	double TOF_ns = 0.;
-	double raw_x,raw_y,raw_w;
-	double sumx,sumy,sumw, sumxyw, diffxy;
-	double raw_sumx,raw_sumy,raw_sumw, raw_sumxyw, raw_diffxy;
-	double PosX,PosY;
+	double raw_x[SPECIES_NUM + TOFSPEC_NUM], raw_y[SPECIES_NUM + TOFSPEC_NUM], raw_w[SPECIES_NUM + TOFSPEC_NUM];
+	double sumx[SPECIES_NUM + TOFSPEC_NUM], sumy[SPECIES_NUM + TOFSPEC_NUM], sumw[SPECIES_NUM + TOFSPEC_NUM], sumxyw[SPECIES_NUM + TOFSPEC_NUM], diffxy[SPECIES_NUM + TOFSPEC_NUM];
+	double raw_sumx[SPECIES_NUM + TOFSPEC_NUM], raw_sumy[SPECIES_NUM + TOFSPEC_NUM], raw_sumw[SPECIES_NUM + TOFSPEC_NUM], raw_sumxyw[SPECIES_NUM + TOFSPEC_NUM], raw_diffxy[SPECIES_NUM + TOFSPEC_NUM];
+	double PosX[SPECIES_NUM + TOFSPEC_NUM], PosY[SPECIES_NUM + TOFSPEC_NUM];
 	double r,phi;
 	double Xuv,Yuv,Xuw,Yuw,Xvw,Yvw;
 	double dX,dY;
+
+	// original variables -----------------------------------------------
+	int i, j;
+	double tof[SPECIES_NUM + TOFSPEC_NUM], mass[SPECIES_NUM + TOFSPEC_NUM];
 
 	//  Example of how to use spectrum commands
 	//	pDAnUserSP->AddOneAt(2,20);			// add one in spectrum 2 at channel 20
@@ -653,198 +674,275 @@ CDAN_API __int32 AnalysisProcessEvent(CDoubleArray &EventData,CDoubleArray &Para
 	}
 
 	// Get Raw-Data
+
+	// ファーストヒットに限定するかどうか（最初に検出器で検出されたイオンのみを解析するか、関係なくとるか・・・）
+	int selec[SPECIES_NUM] = { 0, 1, 0, 0, 1, 1, 1, 1, 1 };    // 1: extract from all NumberOfHits   0: extract from the first hit
+
+	// x1
 	if(i32DAq_ID == DAQ_ID_HM1_ABM)
-		x1 = x2 = y1 = y2 = z1 = z2 = 0;
+		for (i = 0; i <= SPECIES_NUM + TOFSPEC_NUM - 1; i++) {
+			x1[i] = x2[i] = y1[i] = y2[i] = z1[i] = z2[i] = 0;
+		}
 	else
 	{
-		x1 = EventData[(i32StartDAqTDCData+i32Cx1*(i32NumberOfHits+1)+i32UseHit)];
-		x2 = EventData[(i32StartDAqTDCData+i32Cx2*(i32NumberOfHits+1)+i32UseHit)];
-		y1 = EventData[(i32StartDAqTDCData+i32Cy1*(i32NumberOfHits+1)+i32UseHit)];
-		y2 = EventData[(i32StartDAqTDCData+i32Cy2*(i32NumberOfHits+1)+i32UseHit)];
-		if(i32HexAnode)
+		for (i = 0; i <= i32NumberOfHits - 1; i++)
 		{
-			z1 = EventData[(i32StartDAqTDCData+i32Cz1*(i32NumberOfHits+1)+i32UseHit)];
-			z2 = EventData[(i32StartDAqTDCData+i32Cz2*(i32NumberOfHits+1)+i32UseHit)];
-		} 
-		else 
-			z1 = z2 = 0.;
-
-		if(i32TOFChannel >= 0) 
-		{
-			if(counts[i32TOFChannel] > 0 ) 
-				TOF_ns = EventData[(i32StartDAqTDCData+i32TOFChannel*(i32NumberOfHits+1)+1)];
-			else
-				TOF_ns = 0.;
-		}
-		else
-			TOF_ns = 0.;
-
-		if(i32Cmcp != -1)
-		{
-			dMCPChannelData = EventData[(i32Cmcp*(i32NumberOfHits+1)+i32UseHit)];
-			if (i32DAq_ID == DAQ_ID_HPTDC && Parameter[88] > 0.5)
-				TOF_ns = dMCPChannelData;
-			if (!(i32DAq_ID == DAQ_ID_HPTDC && Parameter[88] > 0.5)) 
-			{
-				x1 -= dMCPChannelData;
-				x2 -= dMCPChannelData;
-				y1 -= dMCPChannelData;
-				y2 -= dMCPChannelData;
-				if(i32HexAnode)
-				{
-					z1 -= dMCPChannelData;
-					z2 -= dMCPChannelData;
+			for (j = 0; j <= SPECIES_NUM - 1; j++) {
+				if ((tof_min[j] <= EventData[(i32StartDAqTDCData + i32Cx1 * (i32NumberOfHits + 1) + i32UseHit + i * selec[j])])
+					&& (EventData[(i32StartDAqTDCData + i32Cx1 * (i32NumberOfHits + 1) + i32UseHit + i * selec[j])] <= tof_max[j])) {
+					x1[j] = EventData[(i32StartDAqTDCData + i32Cx1 * (i32NumberOfHits + 1) + i32UseHit + i * selec[j])];
 				}
-				else
-					z1 = z2 = 0.;
 			}
 		}
 	}
 
-	// correct DNL if
-	if((i32DAq_ID == DAQ_ID_HM1) && dDnlCorrection)
-	{
-		x1 = CorrectGP1NDL(x1,dDnlCorrection);
-		x2 = CorrectGP1NDL(x2,dDnlCorrection);
-		y1 = CorrectGP1NDL(y1,dDnlCorrection);
-		y2 = CorrectGP1NDL(y2,dDnlCorrection);
-	}
-
-	if(bAntiMoire) 
-	{
-		x1 += Rnd()-0.5;
-		x2 += Rnd()-0.5;
-		y1 += Rnd()-0.5;
-		y2 += Rnd()-0.5;
-		if(i32HexAnode) 
-		{
-			z1 += Rnd()-0.5;
-			z2 += Rnd()-0.5;
-		}
-		if(i32TOFChannel >= 0) 
-			if(counts[i32TOFChannel] > 0 ) 
-				TOF_ns += Rnd()-0.5;
-	}
-
-	// now get the "real" position
-	if(i32DAq_ID == DAQ_ID_HM1_ABM)
-	{
-		raw_x = RoundToNearestInt32(EventData[(i32StartDAqTDCData+0)]);
-		raw_y = RoundToNearestInt32(EventData[(i32StartDAqTDCData+1)]);
-		raw_w = RoundToNearestInt32(EventData[(i32StartDAqTDCData+2)]);
-
-		raw_sumx = raw_sumy = raw_sumw = raw_sumxyw = raw_diffxy = -1.e200;
-	}
+	// x2
+	if (i32DAq_ID == DAQ_ID_HM1_ABM)
+		;
 	else
 	{
-		raw_x = (x1 - x2);
-		raw_y = (y1 - y2);
-		raw_sumx = x1+x2;
-		raw_sumy = y1+y2;
-		raw_sumxyw = raw_sumx + raw_sumy;
-		raw_diffxy = raw_sumx - raw_sumy;
-
-		if(i32HexAnode) 
+		for (i = 0; i <= i32NumberOfHits - 1; i++)
 		{
-			raw_w = (z1 - z2);
-			raw_sumw = z1+z2;
-			raw_sumxyw += raw_sumw;
-		} 
-		else 
-		{
-			raw_w    = -1.e200;
-			raw_sumw = -1.e200;
+			for (j = 0; j <= SPECIES_NUM - 1; j++) {
+				if ((tof_min[j] <= EventData[(i32StartDAqTDCData + i32Cx2 * (i32NumberOfHits + 1) + i32UseHit + i * selec[j])])
+					&& (EventData[(i32StartDAqTDCData + i32Cx2 * (i32NumberOfHits + 1) + i32UseHit + i * selec[j])] <= tof_max[j])) {
+					x2[j] = EventData[(i32StartDAqTDCData + i32Cx2 * (i32NumberOfHits + 1) + i32UseHit + i * selec[j])];
+				}
+			}
 		}
 	}
 
-	// do conversion ? then first to time (ns)
-	if(i32Conversion)
+	// y1
+	if (i32DAq_ID == DAQ_ID_HM1_ABM)
+		;
+	else
 	{
-		x1 *= dTDCResolution;
-		x2 *= dTDCResolution;
-		y1 *= dTDCResolution;
-		y2 *= dTDCResolution;
-		dMCPChannelData *= dTDCResolution;
-		if(i32HexAnode)
+		for (i = 0; i <= i32NumberOfHits - 1; i++)
 		{
-			z1 *= dTDCResolution;
-			z2 *= dTDCResolution;
+			for (j = 0; j <= SPECIES_NUM - 1; j++) {
+				if ((tof_min[j] <= EventData[(i32StartDAqTDCData + i32Cy1 * (i32NumberOfHits + 1) + i32UseHit + i * selec[j])])
+					&& (EventData[(i32StartDAqTDCData + i32Cy1 * (i32NumberOfHits + 1) + i32UseHit + i * selec[j])] <= tof_max[j])) {
+					y1[j] = EventData[(i32StartDAqTDCData + i32Cy1 * (i32NumberOfHits + 1) + i32UseHit + i * selec[j])];
+				}
+			}
 		}
 	}
-	TOF_ns *= dTDCResolution;
 
-	// sums and differences
-	// sums and differences in channels if parameter 1000 set to "channel"
-	// sums and differences in ns (TIME) if parameter 1000 set to other than "channel"
-	sumx = (x1 + x2) + dOSum;
-	sumy = (y1 + y2) + dOSum;
-	if(i32HexAnode)
-		sumw = (z1 + z2) + dOSum;
+	// y2
+	if (i32DAq_ID == DAQ_ID_HM1_ABM)
+		;
 	else
-		sumw = 0;
-	if(i32HexAnode)
-		sumxyw = (sumx + sumy + sumw) - (2*dOSum);		// only one OSum -> -(2*dOSum)!!!
-	else
-		sumxyw = (sumx + sumy) - dOSum;				// only one OSum -> -(dOSum)!!!
-	diffxy = (sumx - sumy) + dOSum;
-
-	// convert also to position? then to position (mm)
-	if(i32Conversion == 2)
 	{
-		x1 *= dTPCalX;
-		x2 *= dTPCalX;
-		y1 *= dTPCalY;
-		y2 *= dTPCalY;
-		if(i32HexAnode)
+		for (i = 0; i <= i32NumberOfHits - 1; i++)
 		{
-			z1 *= dTPCalZ;
-			z2 *= dTPCalZ;
+			for (j = 0; j <= SPECIES_NUM - 1; j++) {
+				if ((tof_min[j] <= EventData[(i32StartDAqTDCData + i32Cy2 * (i32NumberOfHits + 1) + i32UseHit + i * selec[j])])
+					&& (EventData[(i32StartDAqTDCData + i32Cy2 * (i32NumberOfHits + 1) + i32UseHit + i * selec[j])] <= tof_max[j])) {
+					y2[j] = EventData[(i32StartDAqTDCData + i32Cy2 * (i32NumberOfHits + 1) + i32UseHit + i * selec[j])];
+				}
+			}
 		}
 	}
 
 	if(i32HexAnode)
 	{
-		double x = (x1-x2)*0.5;
-		double y = (y1-y2)*0.5;
-		PosX = x + dOPx;
-		PosY =  (x-2.*y)/sqrt(3.) + dOPy;
+		for (i = 0; i <= SPECIES_NUM + TOFSPEC_NUM - 1; i++) {
+			z1[i] = EventData[(i32StartDAqTDCData + i32Cz1 * (i32NumberOfHits + 1) + i32UseHit)];
+			z2[i] = EventData[(i32StartDAqTDCData + i32Cz2 * (i32NumberOfHits + 1) + i32UseHit)];
+		}
+	} 
+	else { 
+		for (i = 0; i <= SPECIES_NUM + TOFSPEC_NUM - 1; i++) {
+			z1[i] = z2[i] = 0.;
+		}
+	}
+
+	if(i32TOFChannel >= 0) 
+	{
+		if(counts[i32TOFChannel] > 0 ) 
+			TOF_ns = EventData[(i32StartDAqTDCData+i32TOFChannel*(i32NumberOfHits+1)+1)];
+		else
+			TOF_ns = 0.;
 	}
 	else
+		TOF_ns = 0.;
+
+	// PosX, PosY, tofの計算を開始
+	for (i = 0; i <= SPECIES_NUM + TOFSPEC_NUM - 1; i++)
 	{
-		double x = (x1-x2)*0.5;
-		double y = (y1-y2)*0.5;
-		PosX = x + dOPx;
-		PosY = y + dOPy;
+
+		if (i32Cmcp != -1)
+		{
+			dMCPChannelData = EventData[(i32Cmcp*(i32NumberOfHits + 1) + i32UseHit)];
+			if (i32DAq_ID == DAQ_ID_HPTDC && Parameter[88] > 0.5)
+				TOF_ns = dMCPChannelData;
+			if (!(i32DAq_ID == DAQ_ID_HPTDC && Parameter[88] > 0.5))
+			{
+				x1[i] -= dMCPChannelData;
+				x2[i] -= dMCPChannelData;
+				y1[i] -= dMCPChannelData;
+				y2[i] -= dMCPChannelData;
+				if (i32HexAnode)
+				{
+					z1[i] -= dMCPChannelData;
+					z2[i] -= dMCPChannelData;
+				}
+				else
+					z1[i] = z2[i] = 0.;
+			}
+		}
+
+		// correct DNL if
+		if ((i32DAq_ID == DAQ_ID_HM1) && dDnlCorrection)
+		{
+			x1[i] = CorrectGP1NDL(x1[i], dDnlCorrection);
+			x2[i] = CorrectGP1NDL(x2[i], dDnlCorrection);
+			y1[i] = CorrectGP1NDL(y1[i], dDnlCorrection);
+			y2[i] = CorrectGP1NDL(y2[i], dDnlCorrection);
+		}
+
+		if (bAntiMoire)
+		{
+			x1[i] += Rnd() - 0.5;
+			x2[i] += Rnd() - 0.5;
+			y1[i] += Rnd() - 0.5;
+			y2[i] += Rnd() - 0.5;
+			if (i32HexAnode)
+			{
+				z1[i] += Rnd() - 0.5;
+				z2[i] += Rnd() - 0.5;
+			}
+			if (i32TOFChannel >= 0)
+				if (counts[i32TOFChannel] > 0)
+					TOF_ns += Rnd() - 0.5;
+		}
+
+		// now get the "real" position
+		if (i32DAq_ID == DAQ_ID_HM1_ABM)
+		{
+			raw_x[i] = RoundToNearestInt32(EventData[(i32StartDAqTDCData + 0)]);
+			raw_y[i] = RoundToNearestInt32(EventData[(i32StartDAqTDCData + 1)]);
+			raw_w[i] = RoundToNearestInt32(EventData[(i32StartDAqTDCData + 2)]);
+
+			raw_sumx[i] = raw_sumy[i] = raw_sumw[i] = raw_sumxyw[i] = raw_diffxy[i] = -1.e200;
+		}
+		else
+		{
+			raw_x[i] = (x1[i] - x2[i]);
+			raw_y[i] = (y1[i] - y2[i]);
+			raw_sumx[i] = x1[i] + x2[i];
+			raw_sumy[i] = y1[i] + y2[i];
+			raw_sumxyw[i] = raw_sumx[i] + raw_sumy[i];
+			raw_diffxy[i] = raw_sumx[i] - raw_sumy[i];
+
+			if (i32HexAnode)
+			{
+				raw_w[i]= (z1[i] - z2[i]);
+				raw_sumw[i] = z1[i] + z2[i];
+				raw_sumxyw[i] += raw_sumw[i];
+			}
+			else
+			{
+				raw_w[i] = -1.e200;
+				raw_sumw[i] = -1.e200;
+			}
+		}
+
+		// do conversion ? then first to time (ns)
+		if (i32Conversion)
+		{
+			x1[i]*= dTDCResolution;
+			x2[i] *= dTDCResolution;
+			y1[i] *= dTDCResolution;
+			y2[i] *= dTDCResolution;
+			dMCPChannelData *= dTDCResolution;
+			if (i32HexAnode)
+			{
+				z1[i] *= dTDCResolution;
+				z2[i] *= dTDCResolution;
+			}
+		}
+		TOF_ns *= dTDCResolution;
+
+		// sums and differences
+		// sums and differences in channels if parameter 1000 set to "channel"
+		// sums and differences in ns (TIME) if parameter 1000 set to other than "channel"
+		sumx[i] = (x1[i] + x2[i]) + dOSum;
+		sumy[i] = (y1[i] + y2[i]) + dOSum;
+		if (i32HexAnode)
+			sumw[i] = (z1[i] + z2[i]) + dOSum;
+		else
+			sumw[i] = 0;
+		if (i32HexAnode)
+			sumxyw[i] = (sumx[i] + sumy[i] + sumw[i]) - (2 * dOSum);		// only one OSum -> -(2*dOSum)!!!
+		else
+			sumxyw[i] = (sumx[i] + sumy[i]) - dOSum;				// only one OSum -> -(dOSum)!!!
+		diffxy[i] = (sumx[i] - sumy[i]) + dOSum;
+
+		// convert also to position? then to position (mm)
+		if (i32Conversion == 2)
+		{
+			x1[i] *= dTPCalX;
+			x2[i] *= dTPCalX;
+			y1[i] *= dTPCalY;
+			y2[i] *= dTPCalY;
+			if (i32HexAnode)
+			{
+				z1[i] *= dTPCalZ;
+				z2[i] *= dTPCalZ;
+			}
+		}
+
+		if (i32HexAnode)
+		{
+			double x = (x1 - x2)*0.5;
+			double y = (y1 - y2)*0.5;
+			PosX[i] = x + dOPx;
+			PosY[i] = (x - 2.*y) / sqrt(3.) + dOPy;
+		}
+		else
+		{
+			double x = (x1 - x2)*0.5;
+			double y = (y1 - y2)*0.5;
+			PosX[i] = x + dOPx;
+			PosY[i] = y + dOPy;
+		}
+
+		// do rotation
+		if (dRotA)
+		{
+			double xRot, yRot;
+			RotateXY(PosX[i], PosY[i], dRotA, i32PhiConversion, dCOx, dCOy, xRot, yRot);
+			PosX[i] = xRot;
+			PosY[i] = yRot;
+		}
+
+		// convert to r-phi
+		OrthoToRPhi(PosX[i], PosY[i], i32PhiConversion, dCRPhix, dCRPhiy, r, phi);
+
+		if (i32HexAnode)
+		{
+			double x = (x1[i] - x2[i])*0.5;
+			double y = (y1[i] - y2[i])*0.5;
+			double w = (z1[i] - z2[i])*0.5 + dOPw;
+			Xuv = x + dOPx;
+			Yuv = (x - 2.*y) / sqrt(3.) + dOPy;
+			Xuw = Xuv;
+			Yuw = (2.*w - x) / sqrt(3.) + dOPy;
+			Xvw = (y + w) + dOPx;
+			Yvw = (w - y) / sqrt(3.) + dOPy;
+			dX = Xuv - Xvw;
+			dY = Yuv - Yvw;
+		}
+		else
+			Xuv = Yuv = Xuw = Yuw = Xvw = Yvw = dX = dY = DBL_MAX;		// not hex anode -> set to DBL_MAX 
+
+		// tofとmassを計算する
+		tof[i] = raw_sumx[i] * a + b; //unit: us
+		mass[i] = -3.6174e-6 + 1.6725e-6 * tof[i] + 1.1309 * pow(tof[i], 2.);
+
 	}
 
-	// do rotation
-	if(dRotA) 
-	{
-		double xRot,yRot;
-		RotateXY(PosX, PosY, dRotA, i32PhiConversion, dCOx, dCOy, xRot, yRot);
-		PosX = xRot;
-		PosY = yRot;
-	}
-
-	// convert to r-phi
-	OrthoToRPhi(PosX, PosY, i32PhiConversion, dCRPhix, dCRPhiy, r, phi);
-
-	if(i32HexAnode)
-	{
-		double x = (x1-x2)*0.5;
-		double y = (y1-y2)*0.5;
-		double w = (z1-z2)*0.5 + dOPw;
-		Xuv	=	x + dOPx;
-		Yuv	=	(x - 2.*y)/sqrt(3.) + dOPy;
-		Xuw	=	Xuv;
-		Yuw	=	(2.*w-x)/sqrt(3.) + dOPy;
-		Xvw	=	(y+w) + dOPx;
-		Yvw	=	(w-y)/sqrt(3.) + dOPy;
-		dX	=	Xuv - Xvw;
-		dY	=	Yuv - Yvw;
-	}
-	else
-		Xuv = Yuv = Xuw = Yuw = Xvw = Yvw = dX = dY = DBL_MAX;		// not hex anode -> set to DBL_MAX 
 
 	/////////////////////////////////////
 	// write all data back to coordinates
@@ -868,34 +966,34 @@ CDAN_API __int32 AnalysisProcessEvent(CDoubleArray &EventData,CDoubleArray &Para
 	for (__int32 ch = 0; ch<8; ++ch)						// hit counter of the first 9 channels
 		EventData[i32StartDAnData+address++] = counts[ch];
 
-	EventData[i32StartDAnData+address++] = x1;
-	EventData[i32StartDAnData+address++] = x2;
-	EventData[i32StartDAnData+address++] = y1;
-	EventData[i32StartDAnData+address++] = y2;
-	EventData[i32StartDAnData+address++] = z1;
-	EventData[i32StartDAnData+address++] = z2;
+	EventData[i32StartDAnData+address++] = x1[0];
+	EventData[i32StartDAnData+address++] = x2[0];
+	EventData[i32StartDAnData+address++] = y1[0];
+	EventData[i32StartDAnData+address++] = y2[0];
+	EventData[i32StartDAnData+address++] = z1[0];
+	EventData[i32StartDAnData+address++] = z2[0];
 
 	EventData[i32StartDAnData+address++] = TOF_ns;
 
-	EventData[i32StartDAnData+address++] = raw_x;
-	EventData[i32StartDAnData+address++] = raw_y;
-	EventData[i32StartDAnData+address++] = raw_w;
+	EventData[i32StartDAnData+address++] = raw_x[0];
+	EventData[i32StartDAnData+address++] = raw_y[0];
+	EventData[i32StartDAnData+address++] = raw_w[0];
 
-	EventData[i32StartDAnData+address++] = raw_sumx;
-	EventData[i32StartDAnData+address++] = raw_sumy;
-	EventData[i32StartDAnData+address++] = raw_sumw;
-	EventData[i32StartDAnData+address++] = raw_sumxyw;
-	EventData[i32StartDAnData+address++] = raw_diffxy;
+	EventData[i32StartDAnData+address++] = raw_sumx[0];
+	EventData[i32StartDAnData+address++] = raw_sumy[0];
+	EventData[i32StartDAnData+address++] = raw_sumw[0];
+	EventData[i32StartDAnData+address++] = raw_sumxyw[0];
+	EventData[i32StartDAnData+address++] = raw_diffxy[0];
 
-	EventData[i32StartDAnData+address++] = sumx;
-	EventData[i32StartDAnData+address++] = sumy;
-	EventData[i32StartDAnData+address++] = sumw;
-	EventData[i32StartDAnData+address++] = sumxyw;
+	EventData[i32StartDAnData+address++] = sumx[0];
+	EventData[i32StartDAnData+address++] = sumy[0];
+	EventData[i32StartDAnData+address++] = sumw[0];
+	EventData[i32StartDAnData+address++] = sumxyw[0];
 
-	EventData[i32StartDAnData+address++] = diffxy;
+	EventData[i32StartDAnData+address++] = diffxy[0];
 
-	EventData[i32StartDAnData+address++] = PosX;
-	EventData[i32StartDAnData+address++] = PosY;
+	EventData[i32StartDAnData+address++] = PosX[0];
+	EventData[i32StartDAnData+address++] = PosY[0];
 
 	EventData[i32StartDAnData+address++] = r;
 	EventData[i32StartDAnData+address++] = phi;
