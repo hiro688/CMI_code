@@ -1,0 +1,371 @@
+; Startup.ccf for CoboldPC 2011 R5
+restart
+;setpath APPLICATIONPATH
+
+; 
+; loading DAq and DAn modules
+;
+LoadDAqModule DAq_TDC8HP.dll,Applicationpath
+;LoadDAqModule DAq_TDC8PCI2.dll,Applicationpath
+;LoadDAqModule DAq_HM1.dll,Applicationpath
+
+LoadDAnModule DAn_Standard.dll,Applicationpath
+
+;
+; Parameters 0-999 	used by RoentDek DAq modules
+; Parameters 1000-1999	used by RoentDek DAn modules
+; Do not use define new parameters in this Range!!!
+;
+
+; ///////////////////////////////////////
+; Parameters for the hardware part (DAq):
+; ///////////////////////////////////////
+Parameter 1000,0		; !!! Do not Modify this line !!!
+
+Parameter 2,2			;Save 64Bit TimeStamp
+Parameter 32,8			;number of Channels (reread during offline)
+Parameter 33,2			;number of hits (reread during offline)
+
+Parameter 50,201311200000	; check-ID (tests compatibility of CCF/DAq)
+
+Parameter 53,1			; display only every (n)th event (for high rate measurements)
+Parameter 54,0			; internally used, do not change until otherwise told
+
+; DAq Parameters for TDC8HP:
+
+Parameter 60,0			; no file config read
+Parameter 61,0x000000000	; RisingEnable, 0 = none (register trailing edge of NIM signal: transition from -0.8V to 0V) 
+;Parameter 61,0x000000080	; RisingEnable on channel 8 (for use with CFDx) 
+;Parameter 62,0x1ff1ff1ff	; FallingEnable, Channel 1-9 on first TDC (#1 to #9), second TDC (#10 to #18) and third TDC(#19 to #27) 
+Parameter 62,0x0001ff1ff	; default for one or two TDC: register leading edges (0 to -0.8V).in channels defined via Parameter 32
+Parameter 63,0			; TriggerEdge, 0 = falling
+Parameter 64,8			; TriggerChannel, defines "time zero" signal
+Parameter 65,0			; OutputLevel, 0 = false
+Parameter 66,1			; GroupingEnable, 1 = true  = 25ps binsize and max. +-200 microseconds range
+                                ;          	  0 = false = 16ps binsize and max. +-32  milliseconds range
+Parameter 67,0			; AllowOverlap, 0 = false (0 = default)
+Parameter 68,310		; TriggerDeadTime, time in ns
+Parameter 69,-300		; GroupRangeStart, time in ns
+Parameter 70,300		; GroupRangeEnd, time in ns
+Parameter 71,0			; External Clock, 0 = false (must be 1 if two TDCs are used)
+Parameter 72,1			; OutputRollovers, 1 = true (1 = default)
+Parameter 78,1			; VHR (TDC8HP only: 0 = 100ps LSB, 1 = 25ps LSB)
+Parameter 79,0.2		; Group Timeout in seconds (default 0.2s)
+Parameter 80,0			; INL, 0 = false = do not read file (default)
+Parameter 81,0			; DNL, 0 = false = do not read file (default)
+Parameter 86,1			; MMXEnable (never set to 0, always 1)
+Parameter 87,1			; DMAEnable (never set to 0, always 1)
+Parameter 88,0			; time zero channel:
+                   		; set all trigger times (see parameter 64) relative to last hit in this channel
+                   		; please set to 0 if not used
+                  		; "Grouping" must be disabled (see parameter 66)
+Parameter 89,0x00000000		; Trigger channel mask (active only when parameter 66 is set to 0)
+
+
+Parameter 90,4			; type of binsize (works only with parameter 66 = 0)
+				; binsize = 2^n ps.
+				; maximum TDC range = +-(2^31*2^n) ps
+
+Parameter 99,0			; offset for signals in time zero channel (unit: seconds)
+
+; possible DAq Parameter files for other Hardware than TDC8HP
+;execute TDC8PCI2-DAq-Parameters.ccf
+;execute HM1-DAq-Parameters.ccf
+
+; using the new command here to get all parameter information
+; either from HARDWARE or LMF-File
+new
+
+; ------------
+; The TDC Data:
+; ------------
+SetDAqCoordinates,Ch??n,Ch??S??;	Define all needed RAW TDC coordinates
+
+; alternative manual definition with n = signal (hit) counter (in para 33) and s = value (in para 33)
+;Coordinate Ch01n,Ch01S01,Ch01S02;	number of hits in first TDC's CH01, CH02...
+;            ....
+;Coordinate Ch09n,Ch09S01,Ch09S02;	number of hits in first TDC's CH09 (low res channel)
+;Coordinate Ch10n,Ch10S01,Ch10S02;	number of hits in second TDC's CH01, CH02...
+;            ....
+;Coordinate Ch18n,Ch18S01,Ch18S02;	number of hits in second TDC's CH09 (low res channel)	
+;            ...			same for third TDC  	
+
+Coordinate LevelInfo;			do not change or move this line
+
+; ///////////////////////////////////////
+; Parameters for the analysis part (DAn):
+; ///////////////////////////////////////
+
+Parameter 2000,0		; !!! Do not Modify this line !!!
+
+Parameter 1050,201102080000	; check-ID (tests compatibility of CCF/DAn)
+
+Parameter 1000,2		; Parameter 1000 = Conversion Parameter for RAW data, 2 = Position in mm (standard)
+Parameter 1002,0		; Parameter 1002 = Hex-Anode calculations
+				;	0 = no Hex-Anode
+				;	1 = Hex-Anode
+				;	2 = Hex-Anode (warning message omitted)
+Parameter 1003,3		; Parameter 1003 = for PHI conversion
+				;	0 = RAD [-pi..pi]
+				;	1 = RAD [0..2pi]
+				;	2 = DEG [-180..180]
+				;	3 = DEG [0..360]
+Parameter 1004,0		; Parameter 1004 = DNL correction (GP1/HM1 only with default 0.31
+				;	0 = no DNL correction
+				;	1 = Correction value (typically 0.31)
+Parameter 1005,-1		; Parameter 1005 = Start of DAq Data for DAn (Start Coordinate)
+				;	-1 = automatic
+Parameter 1006,-1		; Parameter 1006 = Start of DAn Data (Start Coordinate)
+				;	-1 = automatic
+Parameter 1007,1		; Parameter 1007 = Analyze hit #
+
+Parameter 1010,1.0		; Parameter 1010 = pTPCalX = Time to Point calibration factor for x (mm/ns)
+Parameter 1011,1.0		; Parameter 1011 = pTPCalY = Time to Point calibration factor for y (mm/ns)
+Parameter 1012,1.0		; Parameter 1012 = pTPCalZ = Time to Point calibration factor for z (mm/ns)
+
+; ------------
+; Preset DAn Resolution Parameters
+; for spectra definitions:
+; Parameters 1013-1019
+; ------------
+UserFCall,SetDAnResolutionParameters;
+; ------------
+; or SetDAnResolutionParameters via corresponding parsemathcommands like
+;parsemathcommand reset;
+;parsemathcommand p1013 = p1010*0.5*(int(p20*1000)*0.001);  // fine resolution binning  already set by DAN
+;parsemathcommand p1014 = p1011*0.5*(int(p20*1000)*0.001);  // fine resolution binning	already set by DAN
+;parsemathcommand p1015 = p1010*2*(int(p20*1000)*0.001);  // normal resolution binning 	already set by DAN
+;parsemathcommand p1016 = p1011*2*(int(p20*1000)*0.001);  // normal resolution binning 	already set by DAN
+;parsemathcommand p1017 = p1012*2*(int(p20*1000)*0.001);  // normal resolution binning	already set by DAN
+;parsemathcommand p1018 = p1010*8*(int(p20*1000)*0.001);  // coarse resolution binning	already set by DAN
+;parsemathcommand p1019 = p1011*8*(int(p20*1000)*0.001);  // coarse resolution binning	already set by DAN	    
+;parsemathcommand execute;
+; ------------
+; or set parameters 1013-1019 manually 
+;Parameter 1013,0.05;	high resolution binning
+;Parameter 1014,0.05;	high resolution binning
+;Parameter 1015,0.2;	normal resolution binning 
+;Parameter 1016,0.2;	normal resolution binning 
+;Parameter 1017,0.2;	normal resolution binning 
+;Parameter 1018,0.8;	coarse resolution binning
+;Parameter 1019,0.8;	coarse resolution binning
+
+Parameter 1020,0		; Parameter 1020 = pCOx = Rotation Offset Center for x
+Parameter 1021,0		; Parameter 1021 = pCOy = Rotation Offset Center for y
+Parameter 1022,0		; Parameter 1022 = pRotA = Rotation Angle in mathematical direction
+				;	value in RAD if Parameter 1003 = 0 or 1
+				;	value in DEG if Parameter 1003 = 2 or 3
+
+Parameter 1023,0		; PosX-value of center for r/phi coordinates
+Parameter 1024,0		; PosY-value of center for r/phi coordinates
+
+Parameter 1025,8		; MCP channel (sum calculation: sumx = x1(-MCP)+x2(-MCP), for para 1025 = 0: sumx = x1+x2. Same for y and z)
+Parameter 1026,1		; channel number for x1
+Parameter 1027,2		; channel number for x2
+Parameter 1028,3		; channel number for y1
+Parameter 1029,4		; channel number for y2
+Parameter 1030,5		; channel number for z1
+Parameter 1031,6		; channel number for z2
+Parameter 1032,7		; channel number for TOF (0 if not used)
+
+Parameter 1035,0		; Parameter 1035 = pOPx = Offset for x Point (x translation in 2D position histogram)
+Parameter 1036,0		; Parameter 1036 = pOPy = Offset for y Point (y translation in 2D position histogram)
+Parameter 1037,0		; Parameter 1037 = pOPw = Offset for w Point (w translation in w layer of hexanode only)
+Parameter 1038,0		; Parameter 1038 = pOSum = Offset for Sum/Diff calculations
+
+Parameter 1039,1		; Anti-Moire (0 = no, 1 = yes)
+Parameter 1040,1		; Reset EventCounter (1: reset after "new" command, 0: no reset)
+Parameter 1041,1.		; integration time in seconds for "RealTriggerRate" coordinate
+Parameter 1060,0.		; Condition flag: value will appear as value in coordinate "condition1"
+
+; ---------
+; DAn data:
+; ---------
+Coordinate AbsoluteEventTime;				defines the absolute event time and
+Coordinate DeltaEventTime;				the time between one event and the next
+Coordinate EventCounter;				event number since start or last event number reset
+Coordinate True;					internal coordinate
+Coordinate False;					internal coordinate
+Coordinate ConsistencyIndicator;
+Coordinate PLLStatusLocked;				internal coordinate for HM1 (see manual), must always be defined
+Coordinate RealTriggerRate;				calculates the trigger (count) rate (please see parameter 1041)
+Coordinate condition1;					the value of this coordinate is set by a condition command
+
+Coordinate n1,n2,n3,n4,n5,n6,n7,n8;			number of hits in the TDC channels 1-8 (not higher than parameter 33)
+
+Coordinate x1,x2;					x = u for Hexanode
+Coordinate y1,y2;					y = v for Hexanode
+Coordinate z1,z2;					z = w for Hexanode (not used for para 1002 = 0)
+
+Coordinate TOF; 					Values in the TOF-TDC time calibrated in ns (see parameter 1032)
+Coordinate raw_x,raw_y;					difference of TDC channel values for x1&x2, y1&y2 (uncalibrated)
+Coordinate raw_w;					difference of TDC channel values z1&z2 (uncalibrated, not for Para 1002 = 0)
+Coordinate raw_sumx,raw_sumy;				sum of TDC channel values for x1&x2, y1&y2
+coordinate raw_sumw;					sum of TDC channel values for z1&z2 (uncalibrated, not for Para 1002 = 0)
+Coordinate raw_sumxyw;					sum of TDC channel values for x1 to z2 (for Para 1002 = 0: x1 to y2 only)
+Coordinate raw_diffxy;					sum of TDC channel values for x1&x2 minus sum of y1&y2 (not useful for Hexanode)
+
+Coordinate sumx,sumy,sumw,sumxyw;			same as raw_sum… but calibrated in ns and shifted (according parameter values)
+Coordinate diffxy;					same as raw_diffxy but calibrated in ns and shifted (according parameter values)
+Coordinate PosX,PosY;					calibrated position coordinates after shift/rotation (according parameter values)
+Coordinate r,phi;					calibrated position coordinates in R/Phi coordinate system
+Coordinate Xuv,Yuv,Xuw,Yuw,Xvw,Yvw;			(Xuv and Xuw only use the u coordinate) not for Para 1002 = 0
+Coordinate dX,dY;					control coordinates: difference between Xuv/Xvw and Yuv/Yvw (not for Para 1002 = 0)
+
+Coordinate reflection_in_MCP;		      		time between second and first hit in TDC correlated to MCP signal (as defined by para 1025)  
+Coordinate reflection_in_x1,reflection_in_x2;		control coordinates: time between hit on one delay-line
+Coordinate reflection_in_y1,reflection_in_y2;		contact and second hit on the other contact of the same
+Coordinate reflection_in_z1,reflection_in_z2;		delay-line, for all layers and all ends (not for Para 1002 = 0)
+
+SetHitMatrixCoordinatesAndSpectrum,Const??,Ch??n,n_matrix_x,n_matrix_y;	Defines HitMatrix Coordinates (ConstXX, n_matrix_x, n_matrix_y) and HitMatrix Spectrum according to parameter 32 and 33
+
+; definition of useful conditions
+condition ConsistencyIndicator,14.5,15.5,clean_hit;	true if x1,x2,y1 and y2 signals were registered (for DLD)
+;condition ConsistencyIndicator,62.5,63.5,clean_hit;    true if x1,x2,y1,y2 and z1,z2 signals were registered (for Hex)
+condition sumx,1,1000,sumx;				condition on time sum regions (here: x-layer), 
+condition sumy,1,1000,sumy;				to be narrowed to actual peak widths
+;condition sumx,and,sumy,sum;				combination between time sum gates
+;condition sumw,1,1000,sumw;
+condition sumxyw,1,1000,sum;
+
+; definition of usefull spectra for
+; DAn-Standard Analysis
+
+;-------------------------------------------------------------------------------------------------------------------
+; examples for empty spectra definition (for spectra computations or projections)
+
+;define1 -100,100,1,none,,none,always,Empty 1D
+;define2 -100,100,1,none,,-100,100,1,none,,none,always,Empty 2D
+
+;-------------------------------------------------------------------------------------------------------------------
+; raw tdc data spectra  number of hits
+
+try define1 0,32,1,Ch01n,,none,always,Ch01n
+try define1 0,32,1,Ch02n,,none,always,Ch02n
+try define1 0,32,1,Ch03n,,none,always,Ch03n
+try define1 0,32,1,Ch04n,,none,always,Ch04n
+try define1 0,32,1,Ch05n,,none,always,Ch05n
+try define1 0,32,1,Ch06n,,none,always,Ch06n
+try define1 0,32,1,Ch07n,,none,always,Ch07n
+try define1 0,32,1,Ch08n,,none,always,Ch08n
+define1 -2,66,1,ConsistencyIndicator,,none,always,ConsistencyIndicator;    
+define1 0,100000,10,RealTriggerRate,,none,always,RealTriggerRate,true
+
+try define1 0,32,1,Ch09n,,none,always,Ch09n (low res 1st TDC)
+try define1 0,32,1,Ch10n,,none,always,Ch10n
+try define1 0,32,1,Ch11n,,none,always,Ch11n
+try define1 0,32,1,Ch12n,,none,always,Ch12n
+try define1 0,32,1,Ch13n,,none,always,Ch13n
+try define1 0,32,1,Ch14n,,none,always,Ch14n
+try define1 0,32,1,Ch15n,,none,always,Ch15n
+try define1 0,32,1,Ch16n,,none,always,Ch16n
+try define1 0,32,1,Ch17n,,none,always,Ch17n
+try define1 0,32,1,Ch18n,,none,always,Ch18n (low res 2nd TDC)
+
+;-------------------------------------------------------------------------------------------------------------------
+; raw tdc data spectra values for first hit (in channels)
+
+try define1 -12000,12000,1,Ch01S01,Ch01S01 (x1 raw),none,always,Ch01S01,,true
+try define1 -12000,12000,1,Ch02S01,Ch02S01 (x2 raw),none,always,Ch02S01,,true
+try define1 -12000,12000,1,Ch03S01,Ch03S01 (y1 raw),none,always,Ch03S01,,true
+try define1 -12000,12000,1,Ch04S01,Ch04S01 (y2 raw),none,always,Ch04S01,,true
+try define1 -12000,12000,1,Ch05S01,Ch05S01 (z1 raw),none,always,Ch05S01,,true
+try define1 -12000,12000,1,Ch06S01,Ch06S01 (z2 raw),none,always,Ch06S01,,true
+try define1 -12000,12000,1,Ch07S01,Ch07S01 (TOF raw),none,always,Ch07S01,,true
+try define1 -12000,12000,1,Ch08S02,Ch08S02 (PHD),none,always,Ch08S02 (PHD),,true
+;define1 0,10000000,1000,EventCounter,,none,always,EventCounter,,true
+;define1 0,10000,1,AbsoluteEventTime,AbsoluteEventTime [s],none,always,Time since Start,,true
+define2 0,10000,10,AbsoluteEventTime,Time [s],0,10000,10,RealTriggerRate,Rate,none,always,Rate(time)
+;define2 0,10000,10,AbsoluteEventTime,Time [s],0,1000000,1000,RealTriggerRate,Rate,none,always,Rate(time)
+define1 0,0.005,0.00001,DeltaEventTime,DeltaEventTime [s],none,always,Time between Events,,true
+
+try define1 -12000,12000,512,Ch09S01,Ch09S01 (low res_1),none,always,Ch09S01 (low res 1st TDC),,true
+try define1 -12000,12000,1,Ch10S01,Ch10S01 (x1_2 raw),none,always,Ch10S01,,true
+try define1 -12000,12000,1,Ch11S01,Ch11S01 (x2_2 raw),none,always,Ch11S01,,true
+try define1 -12000,12000,1,Ch12S01,Ch12S01 (y1_2 raw),none,always,Ch12S01,,true
+try define1 -12000,12000,1,Ch13S01,Ch13S01 (y2_2 raw),none,always,Ch13S01,,true
+try define1 -12000,12000,1,Ch14S01,Ch14S01 (z1_2 raw),none,always,Ch14S01,,true
+try define1 -12000,12000,1,Ch15S01,Ch15S01 (z2_2 raw),none,always,Ch15S01,,true
+try define1 -12000,12000,1,Ch16S01,Ch16S01 (TOF_2 raw),none,always,Ch16S01,,true
+try define1 -12000,12000,1,Ch17S01,Ch17S01 (Trigger_2),none,always,Ch17S01,,true
+try define1 -12000,12000,512,Ch18S01,Ch18S01 (low res_2),none,always,Ch18S01 (low res 2nd TDC),,true
+
+;-------------------------------------------------------------------------------------------------------------------
+; computed spectra of raw data in channels
+
+;define1 -5000,5000,4,raw_x,,none,always,raw_x (channels),,true
+;define1 -5000,5000,4,raw_y,,none,always,raw_y (channels),,true
+;define1 -5000,5000,4,raw_w,,none,always,raw_w (channels),,true
+;define1 -1000,9000,4,raw_sumx,,none,always,raw_sumx (channels),,true
+;define1 -1000,9000,4,raw_sumy,,none,always,raw_sumy (channels),,true
+;define1 -1000,9000,4,raw_sumw,,none,always,raw_sumw (channels),,true
+;define1 -3000,27000,4,raw_sumxyw,,none,always,raw_sumxyw (channels),,true
+;define1 -5000,5000,4,raw_diffxy,,none,always,raw_diffxy (channels),,true
+;define2 -5000,5000,10,raw_x,x1-x2 raw,-5000,5000,10,raw_y,y1-y2 raw,none,always,X/Y (u/v) raw,true
+;define2 -5000,5000,10,raw_x,u1-u2 raw,-5000,5000,10,raw_w,w1-w2 raw,none,always,u/w raw,true
+;define2 -5000,5000,10,raw_y,v1-v2 raw,-5000,5000,10,raw_w,w1-w2 raw,none,always,v/w raw,true
+
+;-------------------------------------------------------------------------------------------------------------------
+; optional 1D spectra definition "raw time", calibrated in ns if para 1010-1012 = 1   
+
+;define1 -300,300,p20,x1,ch1 Time,none,always,ch1,,true  
+;define1 -300,300,p20,x2,ch2 Time,none,always,ch2,,true
+;define1 -300,300,p20,y1,ch3 Time,none,always,ch3,,true
+;define1 -300,300,p20,y2,ch4 Time,none,always,ch4,,true
+;define1 -300,300,p20,z1,ch5 Time,none,always,ch5,,true 		(empty for Para 1002 = 0)
+;define1 -300,300,p20,z2,ch6 Time,none,always,ch6,,true			(empty for Para 1002 = 0)
+define1 -300,300,p20,TOF,TOF [ns],none,always,TOF,,true;		usually on ch7			
+;define1 -10,90,0.1,TOF,PHD [ns],none,always,PHD;			if the CFDx "stop" out is on ch7 and MCP signal is trigger
+;define1 -10,90,0.1,TOF,PHD [ns],none,clean_hit,PHD;			... and only the PHD for "clean" events shall be displayed
+;define1 -10,50,0.1,reflection_in_MCP,PHD [ns],none,always,PHD; 	if "CFDx" is on ch8 with trailing edge enabled (Param. 61)
+;define1 -10,50,0.1,reflection_in_MCP,PHD [ns],none,clean_hit,PHD;	... and only the PHD for "clean" events shall be displayed
+
+;-------------------------------------------------------------------------------------------------------------------
+; calculated and calibrated spectra definitions
+ 
+define1 1,400,p20,sumx,sumx Time [ns],none,always,sumx (ns)
+;define1 1,400,0.1,sumx,sumx Time [ns],none,always,sumx (ns)
+define1 1,400,p20,sumy,sumy Time [ns],none,always,sumy (ns)
+;define1 1,400,0.1,sumy,sumy Time [ns],none,always,sumy (ns)
+define1 1,400,p20,sumw,sumw Time [ns],none,always,sumw (ns)
+;define1 1,400,0.1,sumw,sumw Time [ns],none,always,sumw (ns)
+define1 1,900,p20,sumxyw,sumxyw Time [ns],none,always,sumxyw (ns),,true
+;define1 1,900,0.1,sumxyw,sumxyw Time [ns],none,always,sumxyw (ns),,true
+define1 -300,300,p20,diffxy,diffxy Time [ns],none,always,diffxy (ns),,true
+;define1 -300,300,0.1,diffxy,diffxy Time [ns],none,always,diffxy (ns),,true
+define1 -100,100,p1015,PosX,PosX [mm],none,always,PosX (mm),,true
+define1 -100,100,p1016,PosY,PosY [mm],none,always,PosY (mm),,true
+
+;-------------------------------------------------------------------------------------------------------------------
+; Position spectra definitions 
+
+define2 -100,100,p1018,PosX,PosX [mm],-100,100,p1019,PosY,PosY [mm],none,clean_hit,PosX/PosY coarse (mm),true
+
+;-------------------------------------------------------------------------------------------------------------------
+; define overview spectra
+
+definemulti Overview,hit statistics,PosX/PosY coarse (mm),sumxyw (ns),TOF;
+;definemulti Overview,hit statistics,PosX/PosY coarse (mm),sumxyw (ns),PHD;
+
+;-------------------------------------------------------------------------------------------------------------------
+; user defined section begins here:   add your conditions and spectra definitions below
+;-------------------------------------------------------------------------------------------------------------------
+
+;define2 -50,50,p1015,PosX,PosX [mm],-50,50,p1016,PosY,PosY [mm],none,clean_hit,PosX/PosY clean (mm)
+;define2 -50,50,p1015,PosX,PosX [mm],-50,50,p1016,PosY,PosY [mm],none,sum,PosX/PosY sum (mm)
+
+;*******************************************************************************************************************
+;-------------------------------------------------------------------------------------------------------------------
+; control spectra  
+
+;define2 -5000,5000,40,raw_x,x(u),-10,200,1,sumx,sumx [ns],none,clean_hit,x/sumx (clean_hit),true
+;define2 -5000,5000,40,raw_y,y(v),-10,200,1,sumy,sumy [ns],none,clean_hit,y/sumy (clean_hit),true
+;define2 -5000,5000,40,raw_w,w,-10,200,1,sumw,sumw [ns],none,clean_hit,w/sumw (clean_hit),true
+
+;*****************************************************************************************************************
+; begin data acquisition
+start
+show status
+sleep 2s
+View hit statistics
+;update 2s
